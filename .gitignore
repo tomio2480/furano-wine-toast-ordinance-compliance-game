@@ -1,0 +1,12 @@
+# 作業用の一時ファイル
+.scratch/
+
+# 秘密情報
+.env
+.env.*
+!.env.example
+*service-account*.json
+
+# OS が作るファイル
+.DS_Store
+Thumbs.db
