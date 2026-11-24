@@ -10,6 +10,25 @@
       content="富良野市の乾杯条例を題材にしたブラウザゲーム。ふらのワインとふらのぶどう果汁以外を持つ参加者に雪玉を当て、乾杯を守ります。"
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:title" content="乾杯条例ディフェンス" />
+    <meta
+      property="og:description"
+      content="ふらのワインとふらのぶどう果汁以外を持つ参加者に雪玉を当てて、乾杯を守るブラウザゲーム。"
+    />
+    <meta property="og:url" content="https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/" />
+    <meta
+      property="og:image"
+      content="https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="雪の降る窓と銅色の照明がある会場に「乾杯条例ディフェンス」の題字。ワイングラスと雪玉の絵。"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <main id="app" data-screen="title" data-kanpai="neutral">
@@ -61,6 +80,26 @@
         <section class="panel" data-screens="result" aria-labelledby="result-heading">
           <h2 id="result-heading" tabindex="-1">結果</h2>
           <p class="result-score"><span id="result-score">0</span> 点</p>
+          <p class="result-title">称号 <strong id="result-title">乾杯見習い</strong></p>
+          <table class="breakdown">
+            <caption>得点の内訳</caption>
+            <tbody id="breakdown-body"></tbody>
+          </table>
+          <h3 class="share-heading">結果を共有する</h3>
+          <div class="share">
+            <button id="share-native" type="button" hidden>共有する</button>
+            <a id="share-x" class="share-link" target="_blank" rel="noopener noreferrer" href="#">
+              X で共有<span class="visually-hidden">（新しいタブで開きます）</span>
+            </a>
+            <a id="share-bluesky" class="share-link" target="_blank" rel="noopener noreferrer" href="#">
+              Bluesky で共有<span class="visually-hidden">（新しいタブで開きます）</span>
+            </a>
+            <a id="share-threads" class="share-link" target="_blank" rel="noopener noreferrer" href="#">
+              Threads で共有<span class="visually-hidden">（新しいタブで開きます）</span>
+            </a>
+            <button id="share-copy" type="button">文面をコピー</button>
+          </div>
+          <p id="share-status" class="share-status" role="status"></p>
           <div class="actions">
             <button id="retry-button" type="button" class="primary">もう一度</button>
             <button id="title-button" type="button">タイトルへ</button>
