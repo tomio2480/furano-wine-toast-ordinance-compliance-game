@@ -12,7 +12,7 @@ export default tseslint.config(
     extends: [tseslint.configs.strictTypeChecked],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        project: ["./tsconfig.json", "./tsconfig.node.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
