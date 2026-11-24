@@ -1,0 +1,4 @@
+# 中央の textlint 設定に加える，このリポジトリ固有の例外．
+# 書式は tomio2480/github-workflows の templates/.textlint-allowlist.yml に従う．
+allow:
+  - 地方自治研究機構 # 団体の正式名称：max-kanji-continuous-len 例外

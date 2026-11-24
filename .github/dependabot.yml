@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # 技術構成が決まり次第，使用する ecosystem（npm など）を追加する．
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
