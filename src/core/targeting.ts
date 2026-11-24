@@ -19,6 +19,20 @@ function byFrontFirst(a: Slot, b: Slot): number {
   return ROW_PRIORITY[a.row] - ROW_PRIORITY[b.row];
 }
 
+const SLOT_BY_ID: ReadonlyMap<number, Slot> = new Map(SLOTS.map((slot) => [slot.id, slot]));
+
+export function findSlot(slotId: number): Slot | undefined {
+  return SLOT_BY_ID.get(slotId);
+}
+
+/** 当たり判定の中心．雪玉はここへ向けて飛ばす． */
+export function hitboxCenter(slot: Slot): Point {
+  return {
+    x: slot.hitbox.x + slot.hitbox.width / 2,
+    y: slot.hitbox.y + slot.hitbox.height / 2,
+  };
+}
+
 export function participantInSlot(
   participants: readonly Participant[],
   slotId: number,

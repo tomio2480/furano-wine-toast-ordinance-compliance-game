@@ -91,7 +91,13 @@ export const STAGE = { width: 360, height: 640 } as const;
 
 const FIGURE = { width: 72, height: 150 } as const;
 
-function slot(id: number, row: Row, x: number, y: number, scale: number): Slot {
+/** 長テーブルの天板の上端と，幕板の下端（論理座標）． */
+export const TABLE = { top: 332, apronBottom: 372 } as const;
+
+/**
+ * @param hidden 足もとからテーブルに隠れる高さ．当たり判定から除く
+ */
+function slot(id: number, row: Row, x: number, y: number, scale: number, hidden = 0): Slot {
   const width = FIGURE.width * scale;
   const height = FIGURE.height * scale;
   return {
@@ -100,16 +106,18 @@ function slot(id: number, row: Row, x: number, y: number, scale: number): Slot {
     x,
     y,
     scale,
-    hitbox: { x: x - width / 2, y: y - height, width, height },
+    hitbox: { x: x - width / 2, y: y - height, width, height: height - hidden },
   };
 }
 
+const BACK_HIDDEN = 24;
+
 /** 出現の枠．奥の列 4 枠と手前の列 3 枠．数字キーの 1〜7 に対応する． */
 export const SLOTS: readonly Slot[] = [
-  slot(1, "back", 54, 332, 0.78),
-  slot(2, "back", 138, 332, 0.78),
-  slot(3, "back", 222, 332, 0.78),
-  slot(4, "back", 306, 332, 0.78),
+  slot(1, "back", 54, TABLE.apronBottom, 0.78, BACK_HIDDEN),
+  slot(2, "back", 138, TABLE.apronBottom, 0.78, BACK_HIDDEN),
+  slot(3, "back", 222, TABLE.apronBottom, 0.78, BACK_HIDDEN),
+  slot(4, "back", 306, TABLE.apronBottom, 0.78, BACK_HIDDEN),
   slot(5, "front", 72, 520, 1),
   slot(6, "front", 180, 520, 1),
   slot(7, "front", 288, 520, 1),
