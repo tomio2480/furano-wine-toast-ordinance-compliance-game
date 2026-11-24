@@ -68,4 +68,4 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 
 ## 📝 ライセンス
 
-ライセンスは未定である．決まり次第 `LICENSE` を追加する．
+リポジトリ内のコードと素材は MIT ライセンスで公開する．全文は `LICENSE` を参照する．
