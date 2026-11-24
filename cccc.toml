@@ -1,0 +1,6 @@
+# 複雑度の上限（docs/notes/2026-11-25-tech-stack-and-complexity.md を参照）．
+# 実行は npm run complexity（scripts/complexity-gate.mjs）から行う．
+languages = ["es"]
+exclude = ["**/*.test.ts", "dist/**"]
+max-cognitive = 8
+max-cyclomatic = 8
