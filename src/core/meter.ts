@@ -1,4 +1,3 @@
-import { KANPAI_UNIT_SCORE } from "../config";
 import { unitsFor, type KanpaiMode } from "./score";
 
 export type KanpaiUnits = Readonly<Record<KanpaiMode, number>>;
@@ -34,8 +33,4 @@ export function changeMode(meter: KanpaiMeter, mode: KanpaiMode, nowMs: number):
     return meter;
   }
   return { ...closeSegment(meter, nowMs), mode };
-}
-
-export function meterScore(units: KanpaiUnits): number {
-  return units.plus * KANPAI_UNIT_SCORE.plus + units.minus * KANPAI_UNIT_SCORE.minus;
 }

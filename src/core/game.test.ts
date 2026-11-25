@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EXIT_ANIMATION_MS, FIRST_SPAWN_MS, GAME_DURATION_MS, SLOTS } from "../config";
 import { difficultyAt } from "./difficulty";
-import type { DrinkId } from "./drinks";
+import { isCompliant, type DrinkId } from "./drinks";
 import {
   advance,
   appear,
@@ -102,10 +102,13 @@ describe("雪玉", () => {
     expect(throwAt(game, 999)).toBe(game);
   });
 
-  it("時間切れの後は当てても得点が変わらない", () => {
-    let game = enter(quietGame(), 3, "cola");
+  it("時間切れの後は，残っている人に当てても得点が変わらない", () => {
+    let game = advance(quietGame(), GAME_DURATION_MS - 10, random);
+    game = enter(game, 3, "cola");
     game = advance(game, GAME_DURATION_MS, random);
+    expect(isTimeUp(game)).toBe(true);
     const [target] = game.participants;
+    expect(target).toBeDefined();
     expect(throwAt(game, target?.id ?? -1)).toBe(game);
   });
 });
@@ -137,6 +140,39 @@ describe("出現の予定", () => {
       { id: 1, slotId: 1, drink: "beer", appearedAtMs: FIRST_SPAWN_MS, leaveAtMs: FIRST_SPAWN_MS + 2_000 },
     ]);
     expect(game.nextSpawnAtMs).toBe(FIRST_SPAWN_MS + 900);
+  });
+
+  it("同時表示の上限に達していれば，空いた枠があっても出現を見送る", () => {
+    const spawnAtMs = 1_000;
+    const { maxVisible } = difficultyAt(spawnAtMs);
+    expect(maxVisible).toBeLessThan(SLOTS.length);
+    let game = createGame({ firstSpawnAtMs: spawnAtMs });
+    for (const slot of SLOTS.slice(0, maxVisible)) {
+      game = enter(game, slot.id, "beer");
+    }
+    game = advance(game, spawnAtMs, random);
+    expect(game.participants).toHaveLength(maxVisible);
+    expect(game.nextSpawnAtMs).toBeGreaterThan(spawnAtMs);
+  });
+
+  it("時間切れちょうどには新しい参加者を出さない", () => {
+    const game = advance(createGame({ firstSpawnAtMs: GAME_DURATION_MS }), GAME_DURATION_MS, random);
+    expect(game.participants).toEqual([]);
+  });
+
+  it.each([
+    ["不適合", -0.0001, false],
+    ["適合", 0, true],
+  ])("乱数が不適合の比率の境界%sの側なら%s飲料を出す", (_label, offset, isExpectedCompliant) => {
+    const ratio = difficultyAt(FIRST_SPAWN_MS).nonCompliantRatio;
+    // 出現は，次の予定，枠，適合か否か，飲み物の順に乱数を引く．
+    const draws = [0, 0, ratio + offset, 0];
+    let index = 0;
+    const sequence = () => draws[index++] ?? 0;
+    const game = advance(createGame(), FIRST_SPAWN_MS, sequence);
+    const [participant] = game.participants;
+    expect(participant).toBeDefined();
+    expect(isCompliant(participant?.drink ?? "beer")).toBe(isExpectedCompliant);
   });
 
   it("同時表示の上限を超えず，枠も重ならない", () => {

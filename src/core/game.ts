@@ -135,7 +135,10 @@ function chooseDrink(random: Random, nonCompliantRatio: number): DrinkId {
   return pick(random, pool);
 }
 
-/** 出現の予定時刻に，次の予定を立ててから空いた枠へ参加者を出す． */
+/**
+ * 出現の予定時刻に，次の予定を立ててから空いた枠へ参加者を出す．
+ * 時間切れちょうどは結果へ移る直前のため，予定だけ進めて参加者は出さない．
+ */
 function spawn(state: GameState, random: Random): GameState {
   const phase = difficultyAt(state.timeMs);
   const scheduled = {
@@ -144,7 +147,7 @@ function spawn(state: GameState, random: Random): GameState {
   };
   const freeSlots = freeSlotIds(state);
   const isCrowded = state.participants.length >= phase.maxVisible;
-  if (isCrowded || freeSlots.length === 0) {
+  if (isTimeUp(state) || isCrowded || freeSlots.length === 0) {
     return scheduled;
   }
   return appear(scheduled, {
