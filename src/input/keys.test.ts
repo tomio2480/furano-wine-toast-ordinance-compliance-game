@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keyAction } from "./keys";
+import { isPlainKey, keyAction, yieldsToFocusedButton } from "./keys";
 
 describe("keyAction", () => {
   it("Space は乾杯", () => {
@@ -20,5 +20,40 @@ describe("keyAction", () => {
 
   it.each(["Digit8", "Digit0", "KeyA", "Enter"])("%s には割り当てがない", (code) => {
     expect(keyAction(code)).toBeUndefined();
+  });
+});
+
+describe("yieldsToFocusedButton", () => {
+  const KANPAI = { kind: "kanpai" } as const;
+  const button = { tagName: "BUTTON" };
+
+  it("乾杯以外のボタンに焦点があれば，Space はそのボタンの操作に譲る", () => {
+    expect(yieldsToFocusedButton(KANPAI, button, false)).toBe(true);
+  });
+
+  it("乾杯ボタンに焦点があれば，Space で乾杯する", () => {
+    expect(yieldsToFocusedButton(KANPAI, button, true)).toBe(false);
+  });
+
+  it("焦点がボタンでなければ，Space で乾杯する", () => {
+    expect(yieldsToFocusedButton(KANPAI, { tagName: "BODY" }, false)).toBe(false);
+    expect(yieldsToFocusedButton(KANPAI, null, false)).toBe(false);
+  });
+
+  it("数字キーと一時停止のキーは，焦点の位置にかかわらず働く", () => {
+    expect(yieldsToFocusedButton({ kind: "throw", slotId: 1 }, button, false)).toBe(false);
+    expect(yieldsToFocusedButton({ kind: "pause" }, button, false)).toBe(false);
+  });
+});
+
+describe("isPlainKey", () => {
+  const plain = { ctrlKey: false, altKey: false, metaKey: false };
+
+  it("修飾キーを押していなければ，ゲームの操作に使う", () => {
+    expect(isPlainKey(plain)).toBe(true);
+  });
+
+  it.each(["ctrlKey", "altKey", "metaKey"] as const)("%s と一緒に押したキーは，ブラウザや OS の操作に任せる", (modifier) => {
+    expect(isPlainKey({ ...plain, [modifier]: true })).toBe(false);
   });
 });

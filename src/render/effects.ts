@@ -3,45 +3,21 @@ import type { GameState } from "../core/game";
 import type { KanpaiMode } from "../core/score";
 import type { Point } from "../core/targeting";
 import { drawDrink } from "./drinks";
-import { arcPoint, progress, type Popup } from "./motion";
+import {
+  arcPoint,
+  burstRadius,
+  kanpaiPopupPhase,
+  progress,
+  warningAlpha,
+  type MotionProfile,
+  type Popup,
+} from "./motion";
 import { fillCircle, type Ctx } from "./paint";
 import { WINDOW_VIEW } from "./scene";
-
-/** 演出の強さ．prefers-reduced-motion のときは控えめにする． */
-export interface MotionProfile {
-  readonly flightMs: number;
-  readonly appearMs: number;
-  readonly particles: number;
-  readonly popupRise: number;
-  readonly swing: number;
-  readonly pulse: number;
-  readonly snowSpeed: number;
-}
-
-export const FULL_MOTION: MotionProfile = {
-  flightMs: 140,
-  appearMs: 160,
-  particles: 8,
-  popupRise: 26,
-  swing: 0.14,
-  pulse: 1,
-  snowSpeed: 1,
-};
-
-export const REDUCED_MOTION: MotionProfile = {
-  flightMs: 1,
-  appearMs: 1,
-  particles: 0,
-  popupRise: 0,
-  swing: 0,
-  pulse: 0,
-  snowSpeed: 0,
-};
 
 export const SNOWBALL_ORIGIN: Point = { x: STAGE.width / 2, y: 612 };
 const ARC_HEIGHT = 70;
 const BURST_MS = 300;
-const KANPAI_POPUP_MS = 300;
 
 export function drawSnowball(ctx: Ctx, target: Point, t: number): void {
   const at = arcPoint(SNOWBALL_ORIGIN, target, t, ARC_HEIGHT);
@@ -57,7 +33,7 @@ export function drawBurst(ctx: Ctx, center: Point, t: number, profile: MotionPro
     const distance = 6 + t * 26;
     fillCircle(ctx, center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance, 3.2, "#fbfdff");
   }
-  fillCircle(ctx, center.x, center.y, 10 * (1 - t) + 2, "#fbfdff");
+  fillCircle(ctx, center.x, center.y, burstRadius(t, profile), "#fbfdff");
   ctx.restore();
 }
 
@@ -141,7 +117,7 @@ function clink(ctx: Ctx, game: GameState, profile: MotionProfile): void {
 function warning(ctx: Ctx, game: GameState, profile: MotionProfile): void {
   const elapsed = game.timeMs - game.meter.startedAtMs;
   ctx.save();
-  ctx.globalAlpha = 0.55 + Math.sin(elapsed / 90) * 0.25 * profile.pulse;
+  ctx.globalAlpha = warningAlpha(elapsed, profile);
   ctx.lineWidth = 10;
   ctx.strokeStyle = "#e53935";
   ctx.setLineDash([18, 10]);
@@ -151,8 +127,7 @@ function warning(ctx: Ctx, game: GameState, profile: MotionProfile): void {
 }
 
 function kanpaiPopup(ctx: Ctx, elapsedMs: number, popup: Popup, profile: MotionProfile): void {
-  const t = (elapsedMs % KANPAI_POPUP_MS) / KANPAI_POPUP_MS;
-  drawPopup(ctx, popup, KANPAI_POPUP_AT, t, profile);
+  drawPopup(ctx, popup, KANPAI_POPUP_AT, kanpaiPopupPhase(elapsedMs, profile), profile);
 }
 
 const KANPAI_EFFECTS: Readonly<

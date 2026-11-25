@@ -65,8 +65,16 @@ test("Content Security Policy を設定し，1 ゲーム通しても違反が起
   const violations = await collectViolations(page);
   await page.goto("./");
   const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
-  expect(csp).toContain("default-src 'self'");
-  expect(csp).toContain("object-src 'none'");
+  for (const directive of [
+    "default-src 'self'",
+    "connect-src 'none'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "require-trusted-types-for 'script'",
+    "trusted-types 'none'",
+  ]) {
+    expect(csp).toContain(directive);
+  }
   await page.getByRole("button", { name: "消音" }).click();
   await page.getByRole("button", { name: "消音" }).click();
   await page.getByRole("button", { name: "はじめる" }).click();
@@ -85,4 +93,23 @@ test("Content Security Policy を設定し，1 ゲーム通しても違反が起
   await page.getByRole("button", { name: "文面をコピー" }).click();
   await expect(page.locator("#share-status")).toHaveText("コピーしました。");
   expect(await violations()).toEqual([]);
+});
+
+test("Trusted Types を強制し，文字列から HTML を作る操作を拒む", async ({ page }) => {
+  await page.goto("./");
+  const isRejected = await page.evaluate(() => {
+    try {
+      document.createElement("div").innerHTML = "<b>x</b>";
+      return false;
+    } catch (error) {
+      return error instanceof TypeError;
+    }
+  });
+  expect(isRejected).toBe(true);
+});
+
+test("文字コードの宣言を head の先頭に置く", async ({ page }) => {
+  await page.goto("./");
+  const first = await page.evaluate(() => document.head.firstElementChild?.getAttribute("charset"));
+  expect(first?.toLowerCase()).toBe("utf-8");
 });
