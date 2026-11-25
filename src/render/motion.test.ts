@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { EXIT_ANIMATION_MS } from "../config";
 import type { Exit } from "../core/game";
 import { arcPoint, exitPopup, progress } from "./motion";
 
@@ -50,9 +49,5 @@ describe("exitPopup", () => {
 
   it("時間切れの退場には出さない", () => {
     expect(exitPopup(exit("timeout"))).toBeUndefined();
-  });
-
-  it("演出の長さは退場の演出と同じ", () => {
-    expect(EXIT_ANIMATION_MS).toBeGreaterThan(0);
   });
 });

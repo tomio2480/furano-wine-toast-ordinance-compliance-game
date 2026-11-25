@@ -21,6 +21,8 @@ import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } fr
 import { PlaySession, type Clock } from "./session";
 
 const KEY_SOURCE = "key";
+/** PointerEvent.button の主ボタン． */
+const PRIMARY_BUTTON = 0;
 const KANPAI_SOUND_MS = 300;
 const KANPAI_SOUNDS: Readonly<Record<KanpaiMode, SoundName | undefined>> = {
   plus: "clink",
@@ -190,7 +192,7 @@ class App {
 
   #throw(participantId: number | undefined, point: Point): void {
     if (participantId === undefined) {
-      this.#renderer.addMiss(point, this.#session.game.timeMs);
+      this.#session.missAt(point);
       this.#sfx.play("throw");
       return;
     }
@@ -302,6 +304,10 @@ function bindKanpaiButton(button: HTMLButtonElement, app: App): void {
 function bindStage(ui: Elements, app: App): void {
   ui.canvas.addEventListener("pointerdown", (event) => {
     event.preventDefault();
+    // 投げるのは主ボタン（マウスの左，指，ペン）だけにする．
+    if (event.button !== PRIMARY_BUTTON) {
+      return;
+    }
     const point = toStagePoint(event.clientX, event.clientY, ui.canvas.getBoundingClientRect());
     app.throwAtPoint(point);
   });

@@ -30,6 +30,9 @@ export const FIRST_SPAWN_MS = 300;
 /** 退場の演出を見せる時間．この間も枠はふさがったままとする． */
 export const EXIT_ANIMATION_MS = 450;
 
+/** 外れた雪玉が飛んで散るまでを見せる時間． */
+export const MISS_ANIMATION_MS = 500;
+
 export interface Range {
   readonly min: number;
   readonly max: number;
