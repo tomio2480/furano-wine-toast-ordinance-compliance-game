@@ -28,8 +28,8 @@ export function countdownNumber(remainingMs: number): number {
 }
 
 const KANPAI_STATUS: Readonly<Record<KanpaiMode, string>> = {
-  plus: `加点中 +${KANPAI_UNIT_SCORE.plus}`,
-  minus: `減点中 ${KANPAI_UNIT_SCORE.minus} 不適合者がいます`,
+  plus: `加点中 ${KANPAI_UNIT_SCORE.plus.label}`,
+  minus: `減点中 ${KANPAI_UNIT_SCORE.minus.label} 不適合者がいます`,
   neutral: "長押しで乾杯",
 };
 

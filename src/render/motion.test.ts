@@ -53,12 +53,12 @@ describe("arcPoint", () => {
 });
 
 describe("exitPopup", () => {
-  it("命中は +237", () => {
-    expect(exitPopup(exit("hit"))).toEqual({ text: "+237", tone: "good" });
+  it("命中は先頭の 0 を残して +076", () => {
+    expect(exitPopup(exit("hit"))).toEqual({ text: "+076", tone: "good" });
   });
 
-  it("誤射は -237", () => {
-    expect(exitPopup(exit("misfire"))).toEqual({ text: "-237", tone: "bad" });
+  it("誤射は -38", () => {
+    expect(exitPopup(exit("misfire"))).toEqual({ text: "-38", tone: "bad" });
   });
 
   it("時間切れの退場には出さない", () => {

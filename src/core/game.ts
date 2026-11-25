@@ -244,10 +244,10 @@ function points(count: number, unitScore: number): number {
 /** 現在の得点と内訳を返す．進行中の区間は切り上げた暫定値で数える． */
 export function summarize(state: GameState): GameResult {
   const units = meterUnits(state.meter, state.timeMs);
-  const hitPoints = points(state.hits, HIT_SCORE);
-  const misfirePoints = points(state.misfires, MISFIRE_SCORE);
-  const kanpaiPlusPoints = points(units.plus, KANPAI_UNIT_SCORE.plus);
-  const kanpaiMinusPoints = points(units.minus, KANPAI_UNIT_SCORE.minus);
+  const hitPoints = points(state.hits, HIT_SCORE.points);
+  const misfirePoints = points(state.misfires, MISFIRE_SCORE.points);
+  const kanpaiPlusPoints = points(units.plus, KANPAI_UNIT_SCORE.plus.points);
+  const kanpaiMinusPoints = points(units.minus, KANPAI_UNIT_SCORE.minus.points);
   return {
     score: hitPoints + misfirePoints + kanpaiPlusPoints + kanpaiMinusPoints,
     hits: state.hits,

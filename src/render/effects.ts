@@ -111,7 +111,7 @@ function clink(ctx: Ctx, game: GameState, profile: MotionProfile): void {
     drawDrink(ctx, "wineRed");
     ctx.restore();
   }
-  kanpaiPopup(ctx, elapsed, { text: `+${KANPAI_UNIT_SCORE.plus}`, tone: "good" }, profile);
+  kanpaiPopup(ctx, elapsed, { text: KANPAI_UNIT_SCORE.plus.label, tone: "good" }, profile);
 }
 
 function warning(ctx: Ctx, game: GameState, profile: MotionProfile): void {
@@ -123,7 +123,7 @@ function warning(ctx: Ctx, game: GameState, profile: MotionProfile): void {
   ctx.setLineDash([18, 10]);
   ctx.strokeRect(5, 5, STAGE.width - 10, STAGE.height - 10);
   ctx.restore();
-  kanpaiPopup(ctx, elapsed, { text: String(KANPAI_UNIT_SCORE.minus), tone: "bad" }, profile);
+  kanpaiPopup(ctx, elapsed, { text: KANPAI_UNIT_SCORE.minus.label, tone: "bad" }, profile);
 }
 
 function kanpaiPopup(ctx: Ctx, elapsedMs: number, popup: Popup, profile: MotionProfile): void {

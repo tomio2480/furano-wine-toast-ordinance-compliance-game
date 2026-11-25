@@ -68,8 +68,8 @@ export interface Popup {
 }
 
 const EXIT_POPUPS: Partial<Record<ExitReason, Popup>> = {
-  hit: { text: `+${HIT_SCORE}`, tone: "good" },
-  misfire: { text: String(MISFIRE_SCORE), tone: "bad" },
+  hit: { text: HIT_SCORE.label, tone: "good" },
+  misfire: { text: MISFIRE_SCORE.label, tone: "bad" },
 };
 
 /** 退場に添える得点の表示．時間切れの退場には出さない． */

@@ -29,9 +29,9 @@ function enter(state: GameState, slotId: number, drink: DrinkId): GameState {
 
 describe("得点計算の受け入れテスト（表 6）", () => {
   it.each([
-    [1_000, 380],
-    [250, 114],
-    [10, 38],
+    [1_000, 2_370],
+    [250, 711],
+    [10, 237],
   ])("No 1〜3: 全員適合で %i ms 長押しすると %i 点", (holdMs, score) => {
     let game = enter(quietGame(), 1, "wineRed");
     game = setHeld(game, true);
@@ -40,19 +40,19 @@ describe("得点計算の受け入れテスト（表 6）", () => {
     expect(summarize(game).score).toBe(score);
   });
 
-  it("No 4: 加点 0.35 秒の後，不適合者が出現し減点 0.12 秒で離すと 0 点", () => {
+  it("No 4: 加点 0.35 秒の後，不適合者が出現し減点 0.12 秒で離すと 614 点", () => {
     let game = setHeld(enter(quietGame(), 1, "wineWhite"), true);
     game = advance(game, 350, random);
     game = enter(game, 5, "beer");
     game = advance(game, 470, random);
     game = setHeld(game, false);
     const result = summarize(game);
-    expect(result.kanpaiPlusPoints).toBe(152);
-    expect(result.kanpaiMinusPoints).toBe(-152);
-    expect(result.score).toBe(0);
+    expect(result.kanpaiPlusPoints).toBe(948);
+    expect(result.kanpaiMinusPoints).toBe(-334);
+    expect(result.score).toBe(614);
   });
 
-  it("No 5: 加点 0.50 秒，減点 0.30 秒，命中，加点 0.21 秒で離すと 313 点", () => {
+  it("No 5: 加点 0.50 秒，減点 0.30 秒，命中，加点 0.21 秒で離すと 1,471 点", () => {
     let game = setHeld(enter(quietGame(), 1, "grapeJuice"), true);
     game = advance(game, 500, random);
     const beerId = game.nextId;
@@ -61,7 +61,7 @@ describe("得点計算の受け入れテスト（表 6）", () => {
     game = throwAt(game, beerId);
     game = advance(game, 1_010, random);
     game = setHeld(game, false);
-    expect(summarize(game).score).toBe(190 - 228 + 237 + 114);
+    expect(summarize(game).score).toBe(1_185 - 501 + 76 + 711);
   });
 
   it("No 6: 誰もいない状態で 1.00 秒長押ししても 0 点", () => {
@@ -70,13 +70,13 @@ describe("得点計算の受け入れテスト（表 6）", () => {
     expect(summarize(game).score).toBe(0);
   });
 
-  it("No 7: 加点区間の 0.18 秒時点で時間切れなら 76 点", () => {
+  it("No 7: 加点区間の 0.18 秒時点で時間切れなら 474 点", () => {
     let game = advance(quietGame(), GAME_DURATION_MS - 180, random);
     game = setHeld(enter(game, 2, "wineRose"), true);
     game = advance(game, GAME_DURATION_MS + 5_000, random);
     expect(isTimeUp(game)).toBe(true);
     expect(game.timeMs).toBe(GAME_DURATION_MS);
-    expect(summarize(game).kanpaiPlusPoints).toBe(76);
+    expect(summarize(game).kanpaiPlusPoints).toBe(474);
   });
 });
 
@@ -90,20 +90,20 @@ describe("summarize", () => {
 });
 
 describe("雪玉", () => {
-  it("不適合者に当てると 237 点を得て，表示中から外れる", () => {
+  it("不適合者に当てると 076 点（計算では 76 点）を得て，表示中から外れる", () => {
     let game = enter(quietGame(), 3, "cola");
     const [target] = game.participants;
     game = throwAt(game, target?.id ?? -1);
-    expect(summarize(game).score).toBe(237);
+    expect(summarize(game).score).toBe(76);
     expect(game.participants).toEqual([]);
     expect(game.exits.map((exit) => exit.reason)).toEqual(["hit"]);
   });
 
-  it("適合者に当てると 237 点を失う", () => {
+  it("適合者に当てると 38 点を失う", () => {
     let game = enter(quietGame(), 3, "wineRed");
     const [target] = game.participants;
     game = throwAt(game, target?.id ?? -1);
-    expect(summarize(game)).toMatchObject({ score: -237, misfires: 1, misfirePoints: -237 });
+    expect(summarize(game)).toMatchObject({ score: -38, misfires: 1, misfirePoints: -38 });
     expect(game.exits.map((exit) => exit.reason)).toEqual(["misfire"]);
   });
 
@@ -154,8 +154,8 @@ describe("退場", () => {
     expect(game.exits.map((exit) => exit.reason)).toEqual(["timeout"]);
     game = advance(game, 3_000, random);
     const result = summarize(game);
-    expect(result.kanpaiMinusPoints).toBe(20 * -76);
-    expect(result.kanpaiPlusPoints).toBe(10 * 38);
+    expect(result.kanpaiMinusPoints).toBe(20 * -167);
+    expect(result.kanpaiPlusPoints).toBe(10 * 237);
   });
 
   it("退場の演出が終わると枠が空く", () => {
