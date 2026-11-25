@@ -47,6 +47,8 @@ export default defineConfig({
   plugins: [contentSecurityPolicy()],
   build: {
     target: "es2022",
+    // 初期のチャンクは 1 つで先読みするものがない．ポリフィルは connect-src 'none' とも食い違う．
+    modulePreload: { polyfill: false },
   },
   test: {
     include: ["src/**/*.test.ts"],

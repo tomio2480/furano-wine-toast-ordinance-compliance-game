@@ -11,6 +11,7 @@ import {
   kanpaiPopupPhase,
   progress,
   REDUCED_MOTION,
+  warningAlpha,
   watchMotionPreference,
   type MotionProfile,
 } from "./motion";
@@ -98,6 +99,39 @@ describe("kanpaiPopupPhase", () => {
     for (const ms of [0, 150, 299, 450, 1_234]) {
       expect(kanpaiPopupPhase(ms, REDUCED_MOTION)).toBe(0);
     }
+  });
+});
+
+/** start から 1 秒の間に，濃さが薄れてから濃く戻り始めた回数（脈動の回数）を数える． */
+function pulsesWithinOneSecond(startMs: number, profile: MotionProfile): number {
+  const STEP_MS = 5;
+  let pulses = 0;
+  let previous = warningAlpha(startMs, profile);
+  let isFading = false;
+  for (let ms = startMs + STEP_MS; ms <= startMs + 1_000; ms += STEP_MS) {
+    const alpha = warningAlpha(ms, profile);
+    pulses += Number(isFading && alpha > previous);
+    isFading = alpha < previous;
+    previous = alpha;
+  }
+  return pulses;
+}
+
+describe("warningAlpha", () => {
+  it("減点中の警告枠は濃さが変わる", () => {
+    const samples = [0, 100, 200, 300].map((ms) => warningAlpha(ms, FULL_MOTION));
+    expect(new Set(samples).size).toBeGreaterThan(1);
+  });
+
+  it("どの 1 秒間をとっても，警告枠の脈動は 3 回以下", () => {
+    for (let start = 0; start < 1_000; start += 10) {
+      expect(pulsesWithinOneSecond(start, FULL_MOTION)).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it("動きを減らす設定では濃さを変えない", () => {
+    const samples = [0, 100, 200, 300].map((ms) => warningAlpha(ms, REDUCED_MOTION));
+    expect(new Set(samples).size).toBe(1);
   });
 });
 

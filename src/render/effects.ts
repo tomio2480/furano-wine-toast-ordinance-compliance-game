@@ -3,7 +3,15 @@ import type { GameState } from "../core/game";
 import type { KanpaiMode } from "../core/score";
 import type { Point } from "../core/targeting";
 import { drawDrink } from "./drinks";
-import { arcPoint, burstRadius, kanpaiPopupPhase, progress, type MotionProfile, type Popup } from "./motion";
+import {
+  arcPoint,
+  burstRadius,
+  kanpaiPopupPhase,
+  progress,
+  warningAlpha,
+  type MotionProfile,
+  type Popup,
+} from "./motion";
 import { fillCircle, type Ctx } from "./paint";
 import { WINDOW_VIEW } from "./scene";
 
@@ -109,7 +117,7 @@ function clink(ctx: Ctx, game: GameState, profile: MotionProfile): void {
 function warning(ctx: Ctx, game: GameState, profile: MotionProfile): void {
   const elapsed = game.timeMs - game.meter.startedAtMs;
   ctx.save();
-  ctx.globalAlpha = 0.55 + Math.sin(elapsed / 90) * 0.25 * profile.pulse;
+  ctx.globalAlpha = warningAlpha(elapsed, profile);
   ctx.lineWidth = 10;
   ctx.strokeStyle = "#e53935";
   ctx.setLineDash([18, 10]);

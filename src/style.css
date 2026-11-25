@@ -15,6 +15,7 @@
   --good: #1d6b44;
   --bad: #a3221b;
   --focus: #ffd54a;
+  --focus-edge: 0 0 0 7px var(--bg);
   --min-target: 44px;
 }
 
@@ -98,13 +99,9 @@ button.primary {
 }
 
 /*
- * 焦点枠は黄色の線の内外を濃い色で縁取る 2 色の枠にする．
+ * 焦点枠は黄色の線の内外を濃い色（--focus-edge）で縁取る 2 色の枠にする．
  * キャンバスの明るい床や天井の上でも，周りとの境目が 3:1 以上になる．
  */
-:root {
-  --focus-edge: 0 0 0 7px var(--bg);
-}
-
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
@@ -411,11 +408,17 @@ h2[tabindex="-1"]:focus {
   box-shadow: 0 0.4cqw 0 rgb(0 0 0 / 45%);
 }
 
-/* 押した感じの影を残したまま，焦点枠の縁取りを重ねる． */
+/* ボタンの影を残したまま，焦点枠の縁取りを重ねる．押している間は沈んだ影にする． */
 .kanpai-button:focus-visible {
   box-shadow:
     var(--focus-edge),
     0 1cqw 0 rgb(0 0 0 / 45%);
+}
+
+.kanpai-button:active:focus-visible {
+  box-shadow:
+    var(--focus-edge),
+    0 0.4cqw 0 rgb(0 0 0 / 45%);
 }
 
 #app[data-kanpai="plus"] .kanpai-button {

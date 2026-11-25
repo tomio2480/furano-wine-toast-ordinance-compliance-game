@@ -88,6 +88,17 @@ export function kanpaiPopupPhase(elapsedMs: number, profile: MotionProfile): num
   return ((elapsedMs % KANPAI_POPUP_CYCLE_MS) / KANPAI_POPUP_CYCLE_MS) * profile.pulse;
 }
 
+/** 減点中の警告枠が濃くなって薄れる周期．こちらも 1000 / 3 ms より長くする（WCAG 2.3.1）． */
+export const WARNING_PULSE_CYCLE_MS = 600;
+const WARNING_BASE_ALPHA = 0.55;
+const WARNING_PULSE_DEPTH = 0.25;
+
+/** 減点中の警告枠の濃さ．動きを減らす設定では一定にする． */
+export function warningAlpha(elapsedMs: number, profile: MotionProfile): number {
+  const wave = Math.sin((2 * Math.PI * elapsedMs) / WARNING_PULSE_CYCLE_MS);
+  return WARNING_BASE_ALPHA + wave * WARNING_PULSE_DEPTH * profile.pulse;
+}
+
 export interface Placement {
   readonly alpha: number;
   readonly dx: number;

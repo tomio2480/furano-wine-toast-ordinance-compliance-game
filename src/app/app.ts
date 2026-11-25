@@ -386,9 +386,6 @@ function bindWindow(doc: Document, win: Window, app: App): void {
 export function startApp(doc: Document, win: Window): void {
   const ui = getElements(doc);
   const renderer = new Renderer(ui.canvas);
-  watchMotionPreference(win.matchMedia("(prefers-reduced-motion: reduce)"), (profile) => {
-    renderer.setMotion(profile);
-  });
   const loop = new FrameLoop(
     (callback) => win.requestAnimationFrame(callback),
     (frameMs) => {
@@ -396,6 +393,10 @@ export function startApp(doc: Document, win: Window): void {
     },
   );
   const app = new App(ui, () => Math.round(win.performance.now()), renderer, loop);
+  watchMotionPreference(win.matchMedia("(prefers-reduced-motion: reduce)"), (profile) => {
+    renderer.setMotion(profile);
+    loop.refresh();
+  });
   bindButtons(ui, app);
   bindKanpaiButton(ui.kanpaiButton, app);
   bindStage(ui, app);

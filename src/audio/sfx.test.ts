@@ -70,6 +70,16 @@ describe("Sfx の一時停止", () => {
     expect(context.resume).toHaveBeenCalledTimes(2);
   });
 
+  it("止められなかった AudioContext は捨て，次の開始操作で作り直す", async () => {
+    const { context, create, sfx } = setup();
+    context.suspend.mockImplementation(() => Promise.reject(new Error("closed")));
+    sfx.unlock();
+    sfx.suspendWhenIdle();
+    await vi.advanceTimersByTimeAsync(0);
+    sfx.unlock();
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it("消音中は音を鳴らさないので，待たずに止める", () => {
     const { context, sfx } = setup();
     sfx.unlock();

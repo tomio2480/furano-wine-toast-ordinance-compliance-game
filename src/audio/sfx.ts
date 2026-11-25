@@ -108,7 +108,10 @@ export class Sfx {
     const waitMs = Math.max(0, Math.round((this.#busyUntil - context.currentTime) * MS_PER_SECOND));
     this.#suspendTimer = setTimeout(() => {
       this.#suspendTimer = undefined;
-      void context.suspend();
+      context.suspend().catch(() => {
+        // 閉じられた AudioContext は止められない．次の開始操作で作り直す．
+        this.#context = undefined;
+      });
     }, waitMs);
   }
 }
