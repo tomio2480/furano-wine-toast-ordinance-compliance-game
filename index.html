@@ -28,9 +28,13 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="雪の降る窓と銅色の照明がある会場に「乾杯条例ディフェンス」の題字。ワイングラスと雪玉の絵。"
+      content="雪の降る窓と銅色の照明がある会場に「乾杯条例ディフェンス」の題字と「非公式のファンゲーム」の表示。ワイングラスと雪玉の絵。"
     />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:image:alt"
+      content="雪の降る窓と銅色の照明がある会場に「乾杯条例ディフェンス」の題字と「非公式のファンゲーム」の表示。ワイングラスと雪玉の絵。"
+    />
   </head>
   <body>
     <main id="app" data-screen="title" data-kanpai="neutral">
@@ -73,6 +77,7 @@
             <li>ワインやぶどう果汁を持つ人に当てると −237 点です。</li>
             <li>全員がワインかぶどう果汁のとき、乾杯を長押しすると 0.1 秒ごとに +38 点。それ以外の人がいると −76 点です。</li>
             <li>投げる: 人をタップ・クリック、または数字キー 1〜7。乾杯: ボタンの長押し、または Space キー。</li>
+            <li>一時停止: Ⅱ ボタン、または Esc キーか P キー。</li>
             <li>制限時間は 60 秒です。</li>
           </ul>
           <button id="start-button" type="button" class="primary">はじめる</button>
@@ -95,7 +100,10 @@
               >
             </p>
             <p>会場のモチーフ: TechRAMEN 2026 Conference の会場（コンシェルジュ フラノ 1 階）</p>
-            <p>このゲームは利用者の情報を保存せず、アクセス解析も使っていません。</p>
+            <p>
+              このゲーム自体は利用者の情報を保存せず、アクセス解析も使っていません。配信元の GitHub Pages
+              は、セキュリティのために閲覧者の IP アドレスを記録します。
+            </p>
           </section>
         </section>
 
@@ -115,6 +123,13 @@
           <p class="result-title">称号 <strong id="result-title">乾杯見習い</strong></p>
           <table class="breakdown">
             <caption>得点の内訳</caption>
+            <thead>
+              <tr>
+                <th scope="col">項目</th>
+                <th scope="col">内容</th>
+                <th scope="col">得点</th>
+              </tr>
+            </thead>
             <tbody id="breakdown-body"></tbody>
           </table>
           <h3 class="share-heading">結果を共有する</h3>

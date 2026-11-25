@@ -317,6 +317,12 @@ h2[tabindex="-1"]:focus {
   font-weight: 400;
 }
 
+.breakdown thead th {
+  font-size: 0.85em;
+  color: var(--muted-text);
+}
+
+.breakdown thead th:last-child,
 .breakdown td:last-child {
   text-align: right;
   font-variant-numeric: tabular-nums;

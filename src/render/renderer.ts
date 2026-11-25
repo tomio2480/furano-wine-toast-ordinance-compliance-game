@@ -1,6 +1,6 @@
 import { EXIT_ANIMATION_MS, STAGE, type Row, type Slot } from "../config";
 import type { Exit, GameState, Participant } from "../core/game";
-import { findSlot, hitboxCenter, type Point } from "../core/targeting";
+import { findSlot, hitboxCenter } from "../core/targeting";
 import { appearanceFor } from "./appearance";
 import { drawBurst, drawKanpaiEffect, drawMiss, drawPopup, drawSnowball, drawWindowSnow } from "./effects";
 import {
@@ -16,12 +16,6 @@ import type { Ctx } from "./paint";
 import { drawPerson } from "./people";
 import { paintBackground, paintTable } from "./scene";
 
-interface Miss {
-  readonly point: Point;
-  readonly atMs: number;
-}
-
-const MISS_VISIBLE_MS = 500;
 
 function slotOf(participant: Participant): Slot {
   const slot = findSlot(participant.slotId);
@@ -53,7 +47,6 @@ export class Renderer {
   #background: HTMLCanvasElement;
   #table: HTMLCanvasElement;
   #scale = 1;
-  #misses: Miss[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     this.#canvas = canvas;
@@ -78,13 +71,8 @@ export class Renderer {
     this.#table = this.#paintLayer(paintTable);
   }
 
-  addMiss(point: Point, atMs: number): void {
-    this.#misses = [...this.#misses, { point, atMs }];
-  }
-
   draw(game: GameState, frameMs: number): void {
     const ctx = this.#ctx;
-    this.#misses = this.#misses.filter((miss) => game.timeMs - miss.atMs < MISS_VISIBLE_MS);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(this.#background, 0, 0);
     ctx.setTransform(this.#scale, 0, 0, this.#scale, 0, 0);
@@ -136,7 +124,7 @@ export class Renderer {
     for (const exit of game.exits) {
       this.#drawImpact(exit, game.timeMs);
     }
-    for (const miss of this.#misses) {
+    for (const miss of game.misses) {
       drawMiss(this.#ctx, miss.point, game.timeMs - miss.atMs, this.#profile);
     }
   }

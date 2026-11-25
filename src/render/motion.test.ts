@@ -64,10 +64,6 @@ describe("exitPopup", () => {
   it("時間切れの退場には出さない", () => {
     expect(exitPopup(exit("timeout"))).toBeUndefined();
   });
-
-  it("演出の長さは退場の演出と同じ", () => {
-    expect(EXIT_ANIMATION_MS).toBeGreaterThan(0);
-  });
 });
 
 /** start から 1 秒の間に，表示が初めの状態へ戻った回数（明滅の回数）を数える． */

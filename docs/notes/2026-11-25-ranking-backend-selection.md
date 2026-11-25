@@ -26,10 +26,13 @@ GitHub Pages は静的ファイルの配信だけを行う．
 ## ✅ 判断
 
 - Firebase Authentication と Cloud Firestore を Spark プランで使う
-- ログイン手段には Google と GitHub を使う
+- ログイン手段には Google と GitHub を使う（2026-11-25 に Google だけへ改定した）
 - ログインには `signInWithPopup()` を使う
-- 11 位以下は GitHub Actions の定期実行で削除する
+- 11 位以下は GitHub Actions の定期実行で削除する（2026-11-25 に，登録時の即時削除へ改定した）
 - ランキングは Firestore に置き，GitHub Pages のデプロイと切り離す
+
+改定後の方針は，`docs/requirements.md` の「ランキング」と「未決事項」の章にある．
+即時削除の実現方式は，M5 の着手時に決める．
 
 ## 🔀 代替案と棄却理由
 

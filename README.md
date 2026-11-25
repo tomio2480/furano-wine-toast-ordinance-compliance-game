@@ -40,7 +40,7 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 | 事象 | 得点 |
 |---|---|
 | ふらのワインとふらのぶどう果汁以外を持つ人に命中 | +237 |
-| 全員が適合飲料のときの乾杯（0.1 秒ごと） | +38 |
+| 1 人以上いて，全員が適合飲料のときの乾杯（0.1 秒ごと） | +38 |
 | 適合しない人がいるときの乾杯（0.1 秒ごと） | −76 |
 | ふらのワインかふらのぶどう果汁を持つ人に命中 | −237 |
 
@@ -62,7 +62,7 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 |---|---|
 | 要求要件 | 未決事項を含めて確定済み |
 | M1〜M3（中核，描画と操作，結果と共有） | 実装済み |
-| M4（公開） | デプロイの workflow を用意済み．Pages の設定待ち |
+| M4（公開） | デプロイの workflow と Pages の設定は済んでいる．`main` へのマージで公開する |
 | M5〜M7（ランキング，削除，調整） | 未着手 |
 
 ## 📚 ドキュメント
@@ -78,14 +78,20 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 
 ## ⚠ 注記
 
-- 本ゲームは非公式のファンゲームである
-- 富良野市，富良野市ぶどう果樹研究所，コンシェルジュ フラノとは関係がない
-- 題材の「富良野市まずはふらのワインで乾杯条例」は実在する
-- ただし努力義務を定めた条例であり，罰則はない
-- 雪玉で退場させるルールはゲーム上の誇張表現である．飲み物は自由に選んでよい
-- 20 歳未満の飲酒は法律で禁止されている．ぶどう果汁でも乾杯できる
+ゲームの画面には，要件書の文案どおり次の注記を載せている．
+
+> 非公式のファンゲームです。富良野市、富良野市ぶどう果樹研究所、コンシェルジュ フラノとは関係ありません。
+>
+> 実際の条例は努力義務で、罰則はありません。飲み物は自由に選んでください。
+>
+> 20歳未満の飲酒は法律で禁止されています。ぶどう果汁でも乾杯できます。
+
+あわせて，次の点を記しておく．
+
+- 題材の「富良野市まずはふらのワインで乾杯条例」は実在する．雪玉で退場させるルールはゲーム上の誇張表現である
 - 会場は TechRAMEN 2026 Conference の会場（コンシェルジュ フラノ 1 階）をモチーフにした
-- 現在の版は利用者の情報を保存せず，アクセス解析も使わない
+- 現在の版は，ゲーム自体では利用者の情報を保存せず，アクセス解析も使わない
+- 配信元の GitHub Pages は，セキュリティのために閲覧者の IP アドレスを記録する
 
 条例の原文は富良野市の例規集で読める．
 
@@ -107,6 +113,8 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 |---|---|
 | `npm ci` | 依存を入れる |
 | `npm run dev` | 開発サーバーを起動する |
+| `npm run build` | 型を検査し，公開用のファイルを `dist/` に作る |
+| `npm run preview` | `dist/` を手元で配信する |
 | `npm test` | 単体テストを実行する |
 | `npm run test:e2e` | E2E テストと axe-core の検査を実行する |
 | `npm run lint` | ESLint で静的解析する |
@@ -115,6 +123,8 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 | `npm run og-image` | OGP 画像を `assets/og-image.svg` から作り直す |
 
 - E2E テストの初回は `npx playwright install chromium` でブラウザを入れる
+- Content Security Policy はビルド時だけ付く．確かめるときは `npm run dev` ではなく `build` と `preview` を使う
+- `npm run og-image` は Playwright の Chromium で SVG を描く．日本語の題字は手元の日本語フォントで描かれるため，作り直したら PNG を目で確かめる
 - `cccc` は `moznion/cccc` の v1.10.0 を PATH に置く．環境変数 `CCCC_BIN` でも場所を指せる
 - 複雑度の上限は cognitive と cyclomatic ともに 8 で，`cccc.toml` に書いた
 
