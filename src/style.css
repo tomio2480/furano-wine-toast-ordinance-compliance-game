@@ -90,6 +90,11 @@ button.primary {
   outline-offset: 3px;
 }
 
+/* 画面の切り替えで読み上げの起点として移す見出しは，操作できる要素ではないため枠を出さない． */
+h2[tabindex="-1"]:focus {
+  outline: none;
+}
+
 /* HUD */
 .hud {
   --shown-display: flex;
@@ -204,6 +209,86 @@ button.primary {
   display: flex;
   flex-wrap: wrap;
   gap: 3cqw;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.result-title {
+  margin: 0 0 0.6em;
+}
+
+.result-title strong {
+  font-size: 1.3em;
+  color: var(--accent);
+}
+
+.breakdown {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.8em;
+}
+
+.breakdown caption {
+  text-align: left;
+  font-weight: 700;
+}
+
+.breakdown th,
+.breakdown td {
+  padding: 0.2em 0.3em;
+  border-bottom: 1px solid rgb(255 255 255 / 20%);
+  text-align: left;
+  font-weight: 400;
+}
+
+.breakdown thead th {
+  font-size: 0.85em;
+  color: var(--muted-text);
+}
+
+.breakdown thead th:last-child,
+.breakdown td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.share-heading {
+  margin: 0.4em 0 0.4em;
+  font-size: 1.05em;
+}
+
+.share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2cqw;
+  margin-bottom: 0.4em;
+}
+
+.share-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--min-target);
+  padding: 0.4em 1em;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.share-status {
+  min-height: 1.6em;
+  margin: 0 0 0.6em;
 }
 
 /* カウントダウン */

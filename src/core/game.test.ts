@@ -80,6 +80,15 @@ describe("得点計算の受け入れテスト（表 6）", () => {
   });
 });
 
+describe("summarize", () => {
+  it("減点のない項目は -0 ではなく 0 を返す", () => {
+    const result = summarize(quietGame());
+    expect(result.kanpaiMinusPoints).toBe(0);
+    expect(result.misfirePoints).toBe(0);
+    expect(result.score).toBe(0);
+  });
+});
+
 describe("雪玉", () => {
   it("不適合者に当てると 237 点を得て，表示中から外れる", () => {
     let game = enter(quietGame(), 3, "cola");

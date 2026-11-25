@@ -25,6 +25,14 @@ export function getElements(doc: Document) {
     titleButton: byId(doc, "title-button", HTMLButtonElement),
     resultHeading: byId(doc, "result-heading", HTMLHeadingElement),
     resultScore: byId(doc, "result-score", HTMLSpanElement),
+    resultTitle: byId(doc, "result-title", HTMLElement),
+    breakdownBody: byId(doc, "breakdown-body", HTMLTableSectionElement),
+    shareNative: byId(doc, "share-native", HTMLButtonElement),
+    shareX: byId(doc, "share-x", HTMLAnchorElement),
+    shareBluesky: byId(doc, "share-bluesky", HTMLAnchorElement),
+    shareThreads: byId(doc, "share-threads", HTMLAnchorElement),
+    shareCopy: byId(doc, "share-copy", HTMLButtonElement),
+    shareStatus: byId(doc, "share-status", HTMLParagraphElement),
   };
 }
 

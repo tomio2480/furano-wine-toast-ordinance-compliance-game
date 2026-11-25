@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a3b63"/>
+      <stop offset="1" stop-color="#6d7fa8"/>
+    </linearGradient>
+    <linearGradient id="copper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d98b52"/>
+      <stop offset="1" stop-color="#7a3e1c"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#ffd696" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffd696" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="window"><rect x="800" y="150" width="350" height="300"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="630" fill="#1c2742"/>
+  <rect width="1200" height="90" fill="#9a9893"/>
+  <g fill="#555" fill-opacity="0.45">
+    <circle cx="60" cy="30" r="4"/><circle cx="180" cy="30" r="4"/><circle cx="300" cy="30" r="4"/>
+    <circle cx="420" cy="30" r="4"/><circle cx="540" cy="30" r="4"/><circle cx="660" cy="30" r="4"/>
+    <circle cx="780" cy="30" r="4"/><circle cx="900" cy="30" r="4"/><circle cx="1020" cy="30" r="4"/>
+    <circle cx="1140" cy="30" r="4"/>
+  </g>
+  <rect x="0" y="90" width="1200" height="22" fill="#e9d4a8"/>
+  <rect x="20" y="90" width="22" height="430" fill="#e9d4a8"/>
+  <rect x="1158" y="90" width="22" height="430" fill="#e9d4a8"/>
+
+  <g clip-path="url(#window)">
+    <rect x="800" y="150" width="350" height="300" fill="url(#sky)"/>
+    <path d="M800 340 Q 900 290 980 330 T 1150 320 V 450 H 800 Z" fill="#c9d6ea"/>
+    <path d="M860 380 l 26 -70 l 26 70 z M940 390 l 22 -60 l 22 60 z M1060 385 l 26 -70 l 26 70 z" fill="#294a43"/>
+    <rect x="800" y="395" width="350" height="55" fill="#f4f7fc"/>
+    <g fill="#fff" fill-opacity="0.9">
+      <circle cx="830" cy="180" r="3"/><circle cx="880" cy="230" r="2"/><circle cx="940" cy="190" r="3"/>
+      <circle cx="1000" cy="250" r="2"/><circle cx="1060" cy="200" r="3"/><circle cx="1120" cy="240" r="2"/>
+      <circle cx="850" cy="290" r="2"/><circle cx="1010" cy="300" r="3"/><circle cx="1100" cy="170" r="2"/>
+      <circle cx="960" cy="350" r="2"/><circle cx="1130" cy="330" r="3"/><circle cx="900" cy="330" r="2"/>
+    </g>
+  </g>
+  <rect x="800" y="120" width="350" height="30" fill="#f2f0ea"/>
+  <rect x="800" y="120" width="350" height="330" fill="none" stroke="#e8e6df" stroke-width="8"/>
+  <line x1="975" y1="150" x2="975" y2="450" stroke="#e8e6df" stroke-width="6"/>
+
+  <g>
+    <rect x="110" y="112" width="300" height="200" fill="url(#glow)"/>
+    <line x1="260" y1="0" x2="260" y2="120" stroke="#3a3330" stroke-width="2"/>
+    <path d="M226 150 A 34 34 0 0 1 294 150 Z" fill="url(#copper)"/>
+    <line x1="620" y1="0" x2="620" y2="120" stroke="#3a3330" stroke-width="2"/>
+    <path d="M586 150 A 34 34 0 0 1 654 150 Z" fill="url(#copper)"/>
+  </g>
+
+  <rect x="0" y="500" width="1200" height="130" fill="#d7b688"/>
+  <rect x="30" y="482" width="1140" height="18" rx="4" fill="#6b4430"/>
+  <rect x="30" y="500" width="1140" height="40" rx="4" fill="#4a2d1f"/>
+
+  <g transform="translate(660 470) scale(4.2)">
+    <path d="M-12 -44 Q -13 -22 0 -20 Q 13 -22 12 -44 Z" fill="#ebf5fa" fill-opacity="0.6" stroke="#2a1d18" stroke-width="1.6"/>
+    <path d="M-12.6 -34 H 12.6 Q 11 -21 0 -20 Q -11 -21 -12.6 -34 Z" fill="#7a0f2b"/>
+    <line x1="0" y1="-20" x2="0" y2="-4" stroke="#3d3a3a" stroke-width="2.4"/>
+    <ellipse cx="0" cy="-3" rx="10" ry="3" fill="#f5fbff" stroke="#2a1d18" stroke-width="1.2"/>
+  </g>
+  <g>
+    <line x1="460" y1="420" x2="520" y2="400" stroke="#fbfdff" stroke-width="5" stroke-linecap="round" stroke-opacity="0.6"/>
+    <line x1="450" y1="445" x2="515" y2="425" stroke="#fbfdff" stroke-width="5" stroke-linecap="round" stroke-opacity="0.4"/>
+    <circle cx="545" cy="400" r="26" fill="#8fa3b8"/>
+    <circle cx="542" cy="397" r="23" fill="#fbfdff"/>
+  </g>
+
+  <g font-family="'Yu Gothic UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif">
+    <text x="64" y="250" font-size="78" font-weight="800" fill="#f2b544">乾杯条例ディフェンス</text>
+    <text x="68" y="318" font-size="38" font-weight="700" fill="#f7f3ea">まずは、ふらのワインで乾杯！</text>
+    <text x="68" y="374" font-size="28" fill="#d9d3c7">ワインとぶどう果汁以外は雪玉で退場</text>
+    <text x="68" y="600" font-size="24" fill="#3a2a24">非公式のファンゲーム</text>
+  </g>
+</svg>

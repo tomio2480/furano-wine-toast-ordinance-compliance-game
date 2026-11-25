@@ -16,8 +16,10 @@ import { keyAction, type KeyAction } from "../input/keys";
 import { FULL_MOTION, REDUCED_MOTION } from "../render/effects";
 import { Renderer } from "../render/renderer";
 import { toStagePoint } from "../render/viewport";
+import { buildShareText, type ShareText } from "../share/share";
 import { getElements, setData, setText, type Elements } from "./dom";
 import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
+import { bindShareButtons, renderResult } from "./result-view";
 import { PlaySession, type Clock } from "./session";
 
 const KEY_SOURCE = "key";
@@ -45,6 +47,7 @@ class App {
   #countdownEndsAt = 0;
   #countdownShown = 0;
   #kanpaiSoundKey = "";
+  #shareText: ShareText;
 
   readonly #onEvent: Partial<Record<ScreenEvent, () => void>> = {
     start: () => {
@@ -90,6 +93,7 @@ class App {
     this.#clock = clock;
     this.#renderer = renderer;
     this.#session = new PlaySession(clock, createRandom(Date.now()));
+    this.#shareText = buildShareText(summarize(this.#session.game));
     this.#focusTarget = {
       title: () => ui.startButton,
       countdown: () => ui.kanpaiButton,
@@ -122,6 +126,10 @@ class App {
   start(): void {
     this.#sfx.unlock();
     this.dispatch("start");
+  }
+
+  get shareText(): ShareText {
+    return this.#shareText;
   }
 
   toggleMute(): void {
@@ -239,7 +247,7 @@ class App {
 
   #finish(): void {
     this.#stop();
-    setText(this.#ui.resultScore, formatScore(summarize(this.#session.game).score));
+    this.#shareText = renderResult(this.#ui, summarize(this.#session.game));
     this.#sfx.play("end");
   }
 
@@ -343,6 +351,7 @@ export function startApp(doc: Document, win: Window): void {
   bindKanpaiButton(ui.kanpaiButton, app);
   bindStage(ui, app);
   bindWindow(doc, win, app);
+  bindShareButtons(ui, win.navigator, () => app.shareText);
   const resize = () => {
     renderer.resize(ui.stage.clientWidth, win.devicePixelRatio);
   };
