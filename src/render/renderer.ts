@@ -16,7 +16,6 @@ import type { Ctx } from "./paint";
 import { drawPerson } from "./people";
 import { paintBackground, paintTable } from "./scene";
 
-
 function slotOf(participant: Participant): Slot {
   const slot = findSlot(participant.slotId);
   if (slot === undefined) {
