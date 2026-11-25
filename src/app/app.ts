@@ -1,0 +1,356 @@
+import { Sfx, type SoundName } from "../audio/sfx";
+import { COUNTDOWN_MS, GAME_DURATION_MS } from "../config";
+import { isTimeUp, summarize } from "../core/game";
+import { createRandom } from "../core/random";
+import type { KanpaiMode } from "../core/score";
+import { nextScreen, type Screen, type ScreenEvent } from "../core/screen";
+import {
+  findSlot,
+  hitboxCenter,
+  participantInSlot,
+  targetAt,
+  type Point,
+} from "../core/targeting";
+import { HoldTracker } from "../input/hold";
+import { keyAction, type KeyAction } from "../input/keys";
+import { FULL_MOTION, REDUCED_MOTION } from "../render/effects";
+import { Renderer } from "../render/renderer";
+import { toStagePoint } from "../render/viewport";
+import { getElements, setData, setText, type Elements } from "./dom";
+import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
+import { PlaySession, type Clock } from "./session";
+
+const KEY_SOURCE = "key";
+/** PointerEvent.button の主ボタン． */
+const PRIMARY_BUTTON = 0;
+const KANPAI_SOUND_MS = 300;
+const KANPAI_SOUNDS: Readonly<Record<KanpaiMode, SoundName | undefined>> = {
+  plus: "clink",
+  minus: "warn",
+  neutral: undefined,
+};
+/** キー操作を受け付ける画面．メニュー系の画面では Space をボタンの操作に譲る． */
+const KEY_SCREENS: ReadonlySet<Screen> = new Set(["countdown", "play"]);
+
+const noop = () => undefined;
+
+class App {
+  readonly #ui: Elements;
+  readonly #clock: Clock;
+  readonly #session: PlaySession;
+  readonly #renderer: Renderer;
+  readonly #hold = new HoldTracker();
+  readonly #sfx = new Sfx();
+  #screen: Screen = "title";
+  #countdownEndsAt = 0;
+  #countdownShown = 0;
+  #kanpaiSoundKey = "";
+
+  readonly #onEvent: Partial<Record<ScreenEvent, () => void>> = {
+    start: () => {
+      this.#newGame();
+    },
+    retry: () => {
+      this.#newGame();
+    },
+  };
+
+  readonly #onEnter: Readonly<Record<Screen, () => void>> = {
+    title: noop,
+    countdown: () => {
+      this.#beginCountdown();
+    },
+    play: () => {
+      this.#session.run();
+    },
+    pause: () => {
+      this.#stop();
+    },
+    result: () => {
+      this.#finish();
+    },
+  };
+
+  readonly #onTick: Readonly<Record<Screen, () => void>> = {
+    title: noop,
+    countdown: () => {
+      this.#tickCountdown();
+    },
+    play: () => {
+      this.#tickPlay();
+    },
+    pause: noop,
+    result: noop,
+  };
+
+  readonly #focusTarget: Readonly<Record<Screen, () => HTMLElement>>;
+
+  constructor(ui: Elements, clock: Clock, renderer: Renderer) {
+    this.#ui = ui;
+    this.#clock = clock;
+    this.#renderer = renderer;
+    this.#session = new PlaySession(clock, createRandom(Date.now()));
+    this.#focusTarget = {
+      title: () => ui.startButton,
+      countdown: () => ui.kanpaiButton,
+      play: () => ui.kanpaiButton,
+      pause: () => ui.resumeButton,
+      result: () => ui.resultHeading,
+    };
+  }
+
+  dispatch(event: ScreenEvent): void {
+    const next = nextScreen(this.#screen, event);
+    if (next === this.#screen) {
+      return;
+    }
+    this.#onEvent[event]?.();
+    this.#screen = next;
+    this.#onEnter[next]();
+    setData(this.#ui.app, "screen", next);
+    this.#focusTarget[next]().focus();
+  }
+
+  frame(frameMs: number): void {
+    this.#session.sync();
+    this.#onTick[this.#screen]();
+    this.#updateHud();
+    this.#playKanpaiSound();
+    this.#renderer.draw(this.#session.game, frameMs);
+  }
+
+  start(): void {
+    this.#sfx.unlock();
+    this.dispatch("start");
+  }
+
+  toggleMute(): void {
+    this.#sfx.muted = !this.#sfx.muted;
+    this.#ui.muteButton.setAttribute("aria-pressed", String(this.#sfx.muted));
+  }
+
+  throwAtPoint(point: Point): void {
+    if (this.#screen !== "play") {
+      return;
+    }
+    this.#session.sync();
+    this.#throw(targetAt(this.#session.game.participants, point), point);
+  }
+
+  handleKeyDown(event: KeyboardEvent): void {
+    const action = keyAction(event.code);
+    if (action === undefined || !KEY_SCREENS.has(this.#screen)) {
+      return;
+    }
+    event.preventDefault();
+    this.#runKeyAction(action, event.repeat);
+  }
+
+  handleKeyUp(event: KeyboardEvent): void {
+    if (keyAction(event.code)?.kind === "kanpai") {
+      this.release(KEY_SOURCE);
+    }
+  }
+
+  press(source: string): void {
+    this.#hold.press(source);
+    this.#session.setHeld(this.#hold.isHeld);
+  }
+
+  release(source: string): void {
+    this.#hold.release(source);
+    this.#session.setHeld(this.#hold.isHeld);
+  }
+
+  releaseAll(): void {
+    this.#hold.releaseAll();
+    this.#session.setHeld(false);
+  }
+
+  #runKeyAction(action: KeyAction, isRepeat: boolean): void {
+    switch (action.kind) {
+      case "kanpai":
+        this.press(KEY_SOURCE);
+        return;
+      case "throw":
+        this.#throwAtSlot(action.slotId, isRepeat);
+        return;
+      case "pause":
+        this.dispatch("pause");
+        return;
+    }
+  }
+
+  #throwAtSlot(slotId: number, isRepeat: boolean): void {
+    const slot = findSlot(slotId);
+    if (slot === undefined || isRepeat || this.#screen !== "play") {
+      return;
+    }
+    this.#session.sync();
+    this.#throw(participantInSlot(this.#session.game.participants, slotId), hitboxCenter(slot));
+  }
+
+  #throw(participantId: number | undefined, point: Point): void {
+    if (participantId === undefined) {
+      this.#session.missAt(point);
+      this.#sfx.play("throw");
+      return;
+    }
+    const hitsBefore = this.#session.game.hits;
+    this.#session.throwAt(participantId);
+    this.#sfx.play(this.#session.game.hits > hitsBefore ? "hit" : "misfire");
+  }
+
+  #newGame(): void {
+    this.#hold.releaseAll();
+    this.#session.newGame();
+  }
+
+  #beginCountdown(): void {
+    this.#countdownEndsAt = this.#clock() + COUNTDOWN_MS;
+    this.#countdownShown = 0;
+  }
+
+  #tickCountdown(): void {
+    const remaining = this.#countdownEndsAt - this.#clock();
+    if (remaining <= 0) {
+      this.#sfx.play("go");
+      this.dispatch("countdownDone");
+      return;
+    }
+    const shown = countdownNumber(remaining);
+    setText(this.#ui.countdown, String(shown));
+    if (shown !== this.#countdownShown) {
+      this.#sfx.play("count");
+      this.#countdownShown = shown;
+    }
+  }
+
+  #tickPlay(): void {
+    if (isTimeUp(this.#session.game)) {
+      this.dispatch("timeUp");
+    }
+  }
+
+  #stop(): void {
+    this.#hold.releaseAll();
+    this.#session.halt();
+  }
+
+  #finish(): void {
+    this.#stop();
+    setText(this.#ui.resultScore, formatScore(summarize(this.#session.game).score));
+    this.#sfx.play("end");
+  }
+
+  #updateHud(): void {
+    const game = this.#session.game;
+    setText(this.#ui.timeLeft, formatRemainingSeconds(GAME_DURATION_MS - game.timeMs));
+    setText(this.#ui.score, formatScore(summarize(game).score));
+    setData(this.#ui.app, "kanpai", game.meter.mode);
+    setText(this.#ui.kanpaiStatus, kanpaiStatus(game.meter.mode));
+  }
+
+  /** 乾杯の状態が続く間，一定の間隔で音を鳴らす． */
+  #playKanpaiSound(): void {
+    const { meter, timeMs } = this.#session.game;
+    const sound = KANPAI_SOUNDS[meter.mode];
+    const tick = Math.floor((timeMs - meter.startedAtMs) / KANPAI_SOUND_MS);
+    const key = `${meter.mode}:${meter.startedAtMs}:${tick}`;
+    if (sound === undefined || key === this.#kanpaiSoundKey) {
+      return;
+    }
+    this.#kanpaiSoundKey = key;
+    this.#sfx.play(sound);
+  }
+}
+
+function bindButtons(ui: Elements, app: App): void {
+  ui.startButton.addEventListener("click", () => {
+    app.start();
+  });
+  ui.resumeButton.addEventListener("click", () => {
+    app.dispatch("resume");
+  });
+  ui.retryButton.addEventListener("click", () => {
+    app.dispatch("retry");
+  });
+  ui.titleButton.addEventListener("click", () => {
+    app.dispatch("toTitle");
+  });
+  ui.pauseButton.addEventListener("click", () => {
+    app.dispatch("pause");
+  });
+  ui.muteButton.addEventListener("click", () => {
+    app.toggleMute();
+  });
+}
+
+/** 乾杯ボタンは指がずれても押下を続ける．複数の指を区別する． */
+function bindKanpaiButton(button: HTMLButtonElement, app: App): void {
+  const source = (event: PointerEvent) => `pointer:${event.pointerId}`;
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    button.setPointerCapture(event.pointerId);
+    app.press(source(event));
+  });
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"] as const) {
+    button.addEventListener(type, (event) => {
+      app.release(source(event));
+    });
+  }
+}
+
+function bindStage(ui: Elements, app: App): void {
+  ui.canvas.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    // 投げるのは主ボタン（マウスの左，指，ペン）だけにする．
+    if (event.button !== PRIMARY_BUTTON) {
+      return;
+    }
+    const point = toStagePoint(event.clientX, event.clientY, ui.canvas.getBoundingClientRect());
+    app.throwAtPoint(point);
+  });
+  ui.stage.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+}
+
+function bindWindow(doc: Document, win: Window, app: App): void {
+  doc.addEventListener("keydown", (event) => {
+    app.handleKeyDown(event);
+  });
+  doc.addEventListener("keyup", (event) => {
+    app.handleKeyUp(event);
+  });
+  win.addEventListener("blur", () => {
+    app.releaseAll();
+  });
+  doc.addEventListener("visibilitychange", () => {
+    app.releaseAll();
+    if (doc.visibilityState === "hidden") {
+      app.dispatch("pause");
+    }
+  });
+}
+
+export function startApp(doc: Document, win: Window): void {
+  const ui = getElements(doc);
+  const reduced = win.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const renderer = new Renderer(ui.canvas, reduced ? REDUCED_MOTION : FULL_MOTION);
+  const app = new App(ui, () => Math.round(win.performance.now()), renderer);
+  bindButtons(ui, app);
+  bindKanpaiButton(ui.kanpaiButton, app);
+  bindStage(ui, app);
+  bindWindow(doc, win, app);
+  const resize = () => {
+    renderer.resize(ui.stage.clientWidth, win.devicePixelRatio);
+  };
+  new ResizeObserver(resize).observe(ui.stage);
+  resize();
+  const loop = (frameMs: number) => {
+    app.frame(frameMs);
+    win.requestAnimationFrame(loop);
+  };
+  win.requestAnimationFrame(loop);
+}

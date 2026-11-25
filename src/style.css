@@ -1,0 +1,288 @@
+/* 画面の切り替えと乾杯の状態は，#app の data 属性だけで見た目を決める． */
+:root {
+  --bg: #0f1626;
+  --panel: rgb(16 24 44 / 94%);
+  --text: #f7f3ea;
+  --muted-text: #d9d3c7;
+  --accent: #f2b544;
+  --accent-text: #1d1408;
+  --wine: #8e1b3a;
+  --good: #1d6b44;
+  --bad: #a3221b;
+  --focus: #ffd54a;
+  --min-target: 44px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+}
+
+#app {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+}
+
+#stage {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  overflow: hidden;
+  container-type: inline-size;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 各要素は data-screens に並べた画面でだけ表示する． */
+[data-screens] {
+  display: none;
+}
+
+#app[data-screen="title"] [data-screens~="title"],
+#app[data-screen="countdown"] [data-screens~="countdown"],
+#app[data-screen="play"] [data-screens~="play"],
+#app[data-screen="pause"] [data-screens~="pause"],
+#app[data-screen="result"] [data-screens~="result"] {
+  display: var(--shown-display, block);
+}
+
+button {
+  font: inherit;
+  min-height: var(--min-target);
+  min-width: var(--min-target);
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  padding: 0.4em 1.2em;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* HUD */
+.hud {
+  --shown-display: flex;
+  position: absolute;
+  inset: 0 0 auto;
+  gap: 4cqw;
+  align-items: center;
+  padding: 2cqw 32cqw 6cqw 3cqw;
+  background: linear-gradient(rgb(10 14 26 / 85%), rgb(10 14 26 / 0%));
+  font-size: max(14px, 4.2cqw);
+}
+
+.hud-item {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.hud-value {
+  font-size: 1.35em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.icon-button {
+  position: absolute;
+  top: 2cqw;
+  right: 17cqw;
+  padding: 0;
+  font-size: max(16px, 4.4cqw);
+  background: rgb(10 14 26 / 60%);
+}
+
+.mute-button {
+  position: absolute;
+  top: 2cqw;
+  right: 2cqw;
+  padding: 0 0.6em;
+  font-size: max(12px, 3.4cqw);
+  background: rgb(10 14 26 / 60%);
+  --shown-display: inline-block;
+}
+
+/* 消音中は塗りと取り消し線でも示す． */
+.mute-button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  text-decoration: line-through;
+}
+
+/* メニュー系の画面 */
+.panel {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 88%;
+  max-height: 88%;
+  overflow-y: auto;
+  padding: 5cqw 6cqw;
+  border-radius: 4cqw;
+  background: var(--panel);
+  font-size: max(13px, 3.7cqw);
+  line-height: 1.6;
+  touch-action: pan-y;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.panel h1 {
+  margin: 0 0 1cqw;
+  font-size: 1.9em;
+  line-height: 1.3;
+  color: var(--accent);
+}
+
+.panel h2 {
+  margin: 1em 0 0.3em;
+  font-size: 1.25em;
+}
+
+.panel h2:first-child {
+  margin-top: 0;
+}
+
+.lead {
+  margin: 0;
+}
+
+.howto {
+  margin: 0 0 1.2em;
+  padding-left: 1.2em;
+}
+
+.howto em {
+  font-style: normal;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.result-score {
+  margin: 0.2em 0 0.6em;
+  font-size: 1.4em;
+}
+
+#result-score {
+  font-size: 2.2em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3cqw;
+}
+
+/* カウントダウン */
+.countdown {
+  position: absolute;
+  inset: 35% 0 auto;
+  text-align: center;
+  pointer-events: none;
+}
+
+#countdown-number {
+  margin: 0;
+  font-size: 30cqw;
+  font-weight: 800;
+  color: var(--text);
+  text-shadow: 0 0.6cqw 2cqw rgb(0 0 0 / 70%);
+}
+
+/* 乾杯ボタン．状態は色に加え，模様と文字でも示す． */
+.kanpai {
+  --shown-display: flex;
+  position: absolute;
+  left: 50%;
+  bottom: 2.5cqw;
+  transform: translateX(-50%);
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2cqw;
+}
+
+.kanpai-status {
+  margin: 0;
+  padding: 0.2em 0.9em;
+  border-radius: 999px;
+  background: rgb(10 14 26 / 80%);
+  font-size: max(12px, 3.4cqw);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.kanpai-button {
+  width: 44cqw;
+  height: 15cqw;
+  border: 0.8cqw solid var(--text);
+  background: var(--wine);
+  font-size: max(18px, 6.2cqw);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  box-shadow: 0 1cqw 0 rgb(0 0 0 / 45%);
+  touch-action: none;
+}
+
+.kanpai-button:active {
+  transform: translateY(0.6cqw);
+  box-shadow: 0 0.4cqw 0 rgb(0 0 0 / 45%);
+}
+
+#app[data-kanpai="plus"] .kanpai-button {
+  background: var(--good);
+  border-color: #c9f2d8;
+}
+
+#app[data-kanpai="plus"] .kanpai-status {
+  background: var(--good);
+}
+
+#app[data-kanpai="minus"] .kanpai-button {
+  background: repeating-linear-gradient(45deg, var(--bad) 0 3cqw, #6e140f 3cqw 6cqw);
+  border-style: dashed;
+  border-color: var(--focus);
+}
+
+#app[data-kanpai="minus"] .kanpai-status {
+  background: var(--bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

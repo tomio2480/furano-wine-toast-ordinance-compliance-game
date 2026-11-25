@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SLOTS, type Slot } from "../config";
 import type { Participant } from "./game";
-import { participantInSlot, targetAt } from "./targeting";
+import { findSlot, hitboxCenter, participantInSlot, targetAt } from "./targeting";
 
 function participant(id: number, slotId: number): Participant {
   return { id, slotId, drink: "beer", appearedAtMs: 0, leaveAtMs: 1_000 };
@@ -43,6 +43,30 @@ describe("targetAt", () => {
 
   it("枠の範囲の端も含む", () => {
     expect(targetAt([participant(7, 1)], { x: 100, y: 100 }, slots)).toBe(7);
+  });
+});
+
+describe("findSlot", () => {
+  it("id から枠を返す", () => {
+    expect(findSlot(5)?.row).toBe("front");
+  });
+
+  it("ない枠は undefined", () => {
+    expect(findSlot(99)).toBeUndefined();
+  });
+});
+
+describe("hitboxCenter", () => {
+  it("当たり判定の中心を返す", () => {
+    const slot: Slot = {
+      id: 1,
+      row: "front",
+      x: 50,
+      y: 100,
+      scale: 1,
+      hitbox: { x: 20, y: 40, width: 60, height: 40 },
+    };
+    expect(hitboxCenter(slot)).toEqual({ x: 50, y: 60 });
   });
 });
 

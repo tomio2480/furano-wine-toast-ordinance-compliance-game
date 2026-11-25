@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EXIT_ANIMATION_MS, FIRST_SPAWN_MS, GAME_DURATION_MS, SLOTS } from "../config";
+import { EXIT_ANIMATION_MS, FIRST_SPAWN_MS, GAME_DURATION_MS, MISS_ANIMATION_MS, SLOTS } from "../config";
 import { difficultyAt } from "./difficulty";
 import { isCompliant, type DrinkId } from "./drinks";
 import {
@@ -7,6 +7,7 @@ import {
   appear,
   createGame,
   isTimeUp,
+  missAt,
   setHeld,
   summarize,
   throwAt,
@@ -110,6 +111,28 @@ describe("雪玉", () => {
     const [target] = game.participants;
     expect(target).toBeDefined();
     expect(throwAt(game, target?.id ?? -1)).toBe(game);
+  });
+});
+
+describe("外れた雪玉", () => {
+  const point = { x: 120, y: 300 };
+
+  it("外れた時刻と位置を記録する", () => {
+    const game = missAt(advance(quietGame(), 1_000, random), point);
+    expect(game.misses).toEqual([{ point, atMs: 1_000 }]);
+  });
+
+  it("演出が終わると片付ける", () => {
+    let game = missAt(advance(quietGame(), 1_000, random), point);
+    game = advance(game, 1_000 + MISS_ANIMATION_MS - 1, random);
+    expect(game.misses).toHaveLength(1);
+    game = advance(game, 1_000 + MISS_ANIMATION_MS, random);
+    expect(game.misses).toEqual([]);
+  });
+
+  it("時間切れの後は記録しない", () => {
+    const game = advance(quietGame(), GAME_DURATION_MS, random);
+    expect(missAt(game, point)).toBe(game);
   });
 });
 
