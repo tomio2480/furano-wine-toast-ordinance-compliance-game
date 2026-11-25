@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  # main への push は打ち切らず，コミットごとに結果を残す．
+  # 打ち切るのは PR の古い実行だけとし，main への push で実行中のものは止めない．
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
