@@ -38,6 +38,11 @@ function main() {
     console.error(`構文解析に失敗したファイルが ${parseErrors} 件あります．`);
     return 1;
   }
+  // 対象の指定や除外の誤りで測る関数が無くなると，検査は空振りのまま合格してしまう．
+  if (report.summary.function_count === 0) {
+    console.error("測る関数が 1 つもありません．TARGET_DIRS と cccc.toml の exclude を確かめてください．");
+    return 1;
+  }
 
   const gate = runCccc(["--format", "simple", "--violations", "--no-cache"]);
   process.stdout.write(gate.stdout);

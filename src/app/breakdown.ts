@@ -16,7 +16,11 @@ export function breakdownRows(result: GameResult): BreakdownRow[] {
       detail: `${formatKanpaiSeconds(result.kanpaiPlusUnits)} 秒`,
       points: formatSignedScore(result.kanpaiPlusPoints),
     },
-    { label: "乾杯の減点", detail: "", points: formatSignedScore(result.kanpaiMinusPoints) },
+    {
+      label: "乾杯の減点",
+      detail: `${formatKanpaiSeconds(result.kanpaiMinusUnits)} 秒`,
+      points: formatSignedScore(result.kanpaiMinusPoints),
+    },
     { label: "誤射", detail: `${result.misfires} 回`, points: formatSignedScore(result.misfirePoints) },
   ];
 }

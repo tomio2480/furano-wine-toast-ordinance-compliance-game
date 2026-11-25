@@ -11,8 +11,9 @@ function result(overrides: Partial<GameResult> = {}): GameResult {
     hitPoints: 711,
     misfirePoints: 0,
     kanpaiPlusPoints: 456,
-    kanpaiMinusPoints: -854,
+    kanpaiMinusPoints: -912,
     kanpaiPlusUnits: 12,
+    kanpaiMinusUnits: 12,
     ...overrides,
   };
 }
@@ -45,12 +46,28 @@ describe("文字数", () => {
     expect(blueskyLength(buildShareText(worst))).toBeLessThanOrEqual(300);
   });
 
-  it("全角に換算して 100 文字程度に収める", () => {
-    expect(xWeightedLength(buildShareText(worst)) / 2).toBeLessThanOrEqual(110);
+  it("全角に換算して 100 文字以内に収める", () => {
+    expect(xWeightedLength(buildShareText(worst)) / 2).toBeLessThanOrEqual(100);
   });
 
   it("X の重みは全角を 2，半角を 1，URL を 23 と数える", () => {
     expect(xWeightedLength({ body: "あa", url: GAME_URL })).toBe(2 + 1 + 1 + 23);
+  });
+
+  it.each([
+    ["U+10FF", "ჿ", 1],
+    ["U+1100", "ᄀ", 2],
+    ["U+200D", "‍", 1],
+    ["U+200E", "‎", 2],
+    ["U+2010", "‐", 1],
+    ["U+201F", "‟", 1],
+    ["U+2020", "†", 2],
+    ["U+2032", "′", 1],
+    ["U+2037", "‷", 1],
+    ["U+2038", "‸", 2],
+    ["読点（U+3001）", "、", 2],
+  ])("X の重みの境界: %s は %i", (_label, char, weight) => {
+    expect(xWeightedLength({ body: char, url: GAME_URL })).toBe(weight + 1 + 23);
   });
 });
 
@@ -67,12 +84,13 @@ describe("shareLinks", () => {
   it("Bluesky には本文と URL を text にまとめる", () => {
     const url = new URL(links.bluesky);
     expect(url.origin + url.pathname).toBe("https://bsky.app/intent/compose");
-    expect(url.searchParams.get("text")).toMatch(/#乾杯条例ディフェンス\nhttps:\/\/tomio2480\.github\.io\//);
+    expect(url.searchParams.get("text")).toBe(`${buildShareText(result()).body}\n${GAME_URL}`);
   });
 
   it("Threads には本文と URL を別のパラメータで渡す", () => {
     const url = new URL(links.threads);
     expect(url.origin + url.pathname).toBe("https://www.threads.com/intent/post");
+    expect(url.searchParams.get("text")).toBe(buildShareText(result()).body);
     expect(url.searchParams.get("url")).toBe(GAME_URL);
   });
 

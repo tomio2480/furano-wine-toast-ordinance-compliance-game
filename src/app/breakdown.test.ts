@@ -10,13 +10,14 @@ describe("breakdownRows（結果画面の内訳）", () => {
       hitPoints: 711,
       misfirePoints: -474,
       kanpaiPlusPoints: 1_140,
-      kanpaiMinusPoints: -2_394,
+      kanpaiMinusPoints: -2_432,
       kanpaiPlusUnits: 30,
+      kanpaiMinusUnits: 32,
     });
     expect(rows).toEqual([
       { label: "命中", detail: "3 人", points: "+711" },
       { label: "乾杯の加点", detail: "3.0 秒", points: "+1,140" },
-      { label: "乾杯の減点", detail: "", points: "-2,394" },
+      { label: "乾杯の減点", detail: "3.2 秒", points: "-2,432" },
       { label: "誤射", detail: "2 回", points: "-474" },
     ]);
   });
@@ -31,6 +32,7 @@ describe("breakdownRows（結果画面の内訳）", () => {
       kanpaiPlusPoints: 0,
       kanpaiMinusPoints: 0,
       kanpaiPlusUnits: 0,
+      kanpaiMinusUnits: 0,
     });
     expect(rows.map((row) => row.points)).toEqual(["0", "0", "0", "0"]);
   });

@@ -4,6 +4,7 @@ import {
   GAME_DURATION_MS,
   HIT_SCORE,
   MISFIRE_SCORE,
+  MISS_ANIMATION_MS,
   KANPAI_UNIT_SCORE,
   SLOTS,
   STAY_MS,
@@ -13,6 +14,7 @@ import { COMPLIANT_DRINKS, NON_COMPLIANT_DRINKS, isCompliant, type DrinkId } fro
 import { kanpaiMode } from "./kanpai";
 import { changeMode, createMeter, meterUnits, type KanpaiMeter } from "./meter";
 import { pick, randomInt, type Random } from "./random";
+import type { Point } from "./targeting";
 
 export interface Participant {
   readonly id: number;
@@ -31,12 +33,19 @@ export interface Exit {
   readonly atMs: number;
 }
 
+/** 誰にも当たらなかった雪玉．演出のために，ゲームごとに持つ． */
+export interface Miss {
+  readonly point: Point;
+  readonly atMs: number;
+}
+
 /** プレイ中の状態．時間はプレイの経過時間（一時停止中は進まない）で表す． */
 export interface GameState {
   readonly timeMs: number;
   /** 表示中の参加者（S）． */
   readonly participants: readonly Participant[];
   readonly exits: readonly Exit[];
+  readonly misses: readonly Miss[];
   /** 乾杯ボタンが押されているか（H）． */
   readonly isHeld: boolean;
   readonly meter: KanpaiMeter;
@@ -55,6 +64,7 @@ export function createGame(options: GameOptions = {}): GameState {
     timeMs: 0,
     participants: [],
     exits: [],
+    misses: [],
     isHeld: false,
     meter: createMeter(0),
     hits: 0,
@@ -104,6 +114,14 @@ export function appear(state: GameState, arrival: Arrival): GameState {
 const HIT_OUTCOME = { reason: "hit", hits: 1, misfires: 0 } as const;
 const MISFIRE_OUTCOME = { reason: "misfire", hits: 0, misfires: 1 } as const;
 
+/** 誰もいない所へ投げた雪玉を記録する．時間切れの後は記録しない． */
+export function missAt(state: GameState, point: Point): GameState {
+  if (isTimeUp(state)) {
+    return state;
+  }
+  return { ...state, misses: [...state.misses, { point, atMs: state.timeMs }] };
+}
+
 /** 雪玉を参加者に当てる．命中の判定は押した時点で行う． */
 export function throwAt(state: GameState, participantId: number): GameState {
   const target = state.participants.find((participant) => participant.id === participantId);
@@ -135,7 +153,10 @@ function chooseDrink(random: Random, nonCompliantRatio: number): DrinkId {
   return pick(random, pool);
 }
 
-/** 出現の予定時刻に，次の予定を立ててから空いた枠へ参加者を出す． */
+/**
+ * 出現の予定時刻に，次の予定を立ててから空いた枠へ参加者を出す．
+ * 時間切れちょうどは結果へ移る直前のため，予定だけ進めて参加者は出さない．
+ */
 function spawn(state: GameState, random: Random): GameState {
   const phase = difficultyAt(state.timeMs);
   const scheduled = {
@@ -144,7 +165,7 @@ function spawn(state: GameState, random: Random): GameState {
   };
   const freeSlots = freeSlotIds(state);
   const isCrowded = state.participants.length >= phase.maxVisible;
-  if (isCrowded || freeSlots.length === 0) {
+  if (isTimeUp(state) || isCrowded || freeSlots.length === 0) {
     return scheduled;
   }
   return appear(scheduled, {
@@ -176,10 +197,11 @@ function spawnDue(state: GameState, random: Random): GameState {
   return state.nextSpawnAtMs <= state.timeMs ? spawn(state, random) : state;
 }
 
-/** 時刻を進め，演出の終わった退場者を片付ける． */
+/** 時刻を進め，演出の終わった退場者と外れた雪玉を片付ける． */
 function moveTo(state: GameState, timeMs: number): GameState {
   const isAnimating = (exit: Exit) => timeMs - exit.atMs < EXIT_ANIMATION_MS;
-  return { ...state, timeMs, exits: state.exits.filter(isAnimating) };
+  const isFlying = (miss: Miss) => timeMs - miss.atMs < MISS_ANIMATION_MS;
+  return { ...state, timeMs, exits: state.exits.filter(isAnimating), misses: state.misses.filter(isFlying) };
 }
 
 function nextEventAt(state: GameState): number {
@@ -210,6 +232,8 @@ export interface GameResult {
   readonly kanpaiMinusPoints: number;
   /** 加点区間の単位数．投稿文の乾杯秒数に使う． */
   readonly kanpaiPlusUnits: number;
+  /** 減点区間の単位数．結果の内訳に秒数として出す． */
+  readonly kanpaiMinusUnits: number;
 }
 
 /** 回数と 1 回あたりの得点を掛ける．0 × 負の数は -0 になり「-0」と表示されるため，0 にそろえる． */
@@ -233,5 +257,6 @@ export function summarize(state: GameState): GameResult {
     kanpaiPlusPoints,
     kanpaiMinusPoints,
     kanpaiPlusUnits: units.plus,
+    kanpaiMinusUnits: units.minus,
   };
 }

@@ -41,7 +41,8 @@ function xCharWeight(char: string): number {
 
 /**
  * X の投稿画面での文字数．URL は長さによらず 23 と数え，本文との間に空白が 1 つ入る．
- * X はコードポイントごとに重みを付けるため，書記素ではなくコードポイントで数える．
+ * 絵文字以外はコードポイントごとに重みを付けるため，書記素ではなくコードポイントで数える．
+ * X は絵文字を構成するコードポイントの数によらず 2 と数えるが，本文に絵文字は使わない．
  */
 export function xWeightedLength(text: ShareText): number {
   const weights = Array.from(text.body, xCharWeight);
@@ -49,10 +50,9 @@ export function xWeightedLength(text: ShareText): number {
   return bodyWeight + X_URL_SEPARATOR_WEIGHT + X_URL_WEIGHT;
 }
 
-const graphemes = new Intl.Segmenter("ja", { granularity: "grapheme" });
-
-/** Bluesky の投稿画面での文字数（書記素の数）． */
+/** Bluesky の投稿画面での文字数（書記素の数）．文字数の検査でだけ使うため，呼ばれたときに作る． */
 export function blueskyLength(text: ShareText): number {
+  const graphemes = new Intl.Segmenter("ja", { granularity: "grapheme" });
   return [...graphemes.segment(fullShareText(text))].length;
 }
 

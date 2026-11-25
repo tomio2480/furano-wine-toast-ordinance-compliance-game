@@ -1,12 +1,14 @@
 import {
   advance,
   createGame,
+  missAt,
   setHeld,
   throwAt,
   type GameOptions,
   type GameState,
 } from "../core/game";
 import type { Random } from "../core/random";
+import type { Point } from "../core/targeting";
 
 /** ms 単位の整数を返す単調増加の時計． */
 export type Clock = () => number;
@@ -71,5 +73,10 @@ export class PlaySession {
   throwAt(participantId: number): void {
     this.sync();
     this.#game = throwAt(this.#game, participantId);
+  }
+
+  missAt(point: Point): void {
+    this.sync();
+    this.#game = missAt(this.#game, point);
   }
 }
