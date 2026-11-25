@@ -24,7 +24,7 @@ export const KANPAI_UNIT_SCORE = {
 /** 共有するゲームの URL．location.href は使わず，余計な文字列を混ぜない． */
 export const GAME_URL = "https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/";
 
-export const HASHTAG = "#乾杯条例ディフェンス";
+export const HASHTAG = "#乾杯条例ガーディアン";
 
 export interface TitleRank {
   /** この称号になる最低の得点． */

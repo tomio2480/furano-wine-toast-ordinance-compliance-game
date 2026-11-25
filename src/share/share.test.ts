@@ -21,7 +21,7 @@ function result(overrides: Partial<GameResult> = {}): GameResult {
 describe("buildShareText（案 B）", () => {
   it("得点・命中数・乾杯秒数・ハッシュタグを含める", () => {
     expect(buildShareText(result())).toEqual({
-      body: "ワインとぶどう果汁以外は雪玉で退場。命中3人、乾杯1.2秒、合計313点でした。\n#乾杯条例ディフェンス",
+      body: "ワインとぶどう果汁以外は雪玉で退場。命中3人、乾杯1.2秒、合計313点でした。\n#乾杯条例ガーディアン",
       url: GAME_URL,
     });
   });

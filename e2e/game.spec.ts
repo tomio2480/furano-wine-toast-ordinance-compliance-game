@@ -34,7 +34,7 @@ async function expectNoAxeViolations(page: Page): Promise<void> {
 }
 
 test("タイトル画面にゲーム名と開始ボタンがある", async ({ page }) => {
-  await expect(page.getByRole("heading", { level: 1, name: "乾杯条例ディフェンス" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "乾杯条例ガーディアン" })).toBeVisible();
   await expect(page.getByRole("button", { name: "はじめる" })).toBeVisible();
 });
 
