@@ -1,8 +1,27 @@
 version: 2
 updates:
-  # 技術構成が決まり次第，使用する ecosystem（npm など）を追加する．
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # 公開直後の版は取り下げられることがあるため，数日待ってから提案させる．
+    cooldown:
+      default-days: 5
+    groups:
+      # typescript-eslint が対応する範囲でしか TypeScript を上げられないため，両者を同じ PR で扱う．
+      typescript:
+        patterns:
+          - "typescript"
+          - "typescript-eslint"
+    ignore:
+      # typescript-eslint は TypeScript 6.1 未満にしか対応しない．対応したらこの除外を外す．
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 5

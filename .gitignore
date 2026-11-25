@@ -1,6 +1,13 @@
 # 作業用の一時ファイル
 .scratch/
 
+# 依存とビルド成果物
+node_modules/
+dist/
+playwright-report/
+test-results/
+.cccc.cache
+
 # 秘密情報
 .env
 .env.*
