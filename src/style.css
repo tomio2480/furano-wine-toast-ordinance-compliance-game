@@ -1,5 +1,10 @@
-/* 画面の切り替えと乾杯の状態は，#app の data 属性だけで見た目を決める． */
+/*
+ * 画面の切り替えと乾杯の状態は，#app の data 属性だけで見た目を決める．
+ * 文字の大きさは rem で決め，利用者の文字の設定とブラウザのズームに追従させる．
+ * ルートの font-size は指定しない（text-scale の meta が OS の設定を反映する）．
+ */
 :root {
+  color-scheme: dark;
   --bg: #0f1626;
   --panel: rgb(16 24 44 / 94%);
   --text: #f7f3ea;
@@ -15,6 +20,11 @@
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  /* ピンチ拡大を許す代わりに，引っ張って再読み込みする動作は止める． */
+  overscroll-behavior: none;
 }
 
 html,
@@ -41,7 +51,8 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  touch-action: none;
+  /* ピンチ拡大は許す．標準の操作を止めるのは，キャンバスと乾杯ボタンだけにする． */
+  touch-action: manipulation;
 }
 
 #scene {
@@ -50,6 +61,7 @@ body {
   width: 100%;
   height: 100%;
   display: block;
+  touch-action: none;
 }
 
 /* 各要素は data-screens に並べた画面でだけ表示する． */
@@ -85,31 +97,70 @@ button.primary {
   font-weight: 700;
 }
 
+/*
+ * 焦点枠は黄色の線の内外を濃い色で縁取る 2 色の枠にする．
+ * キャンバスの明るい床や天井の上でも，周りとの境目が 3:1 以上になる．
+ */
+:root {
+  --focus-edge: 0 0 0 7px var(--bg);
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
+  box-shadow: var(--focus-edge);
 }
 
 /* 画面の切り替えで読み上げの起点として移す見出しは，操作できる要素ではないため枠を出さない． */
 h2[tabindex="-1"]:focus {
   outline: none;
+  box-shadow: none;
 }
 
-/* HUD */
+/*
+ * 上部の帯．残り時間と得点，一時停止と消音のボタンを 1 列に並べ，
+ * 文字が大きくなっても重ならず折り返すようにする．
+ * 帯の隙間はキャンバスへの操作を通し，消音ボタンはパネルより手前に出す．
+ */
+.topbar {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 2cqw;
+  padding: 2cqw 2cqw 6cqw 3cqw;
+  pointer-events: none;
+}
+
+#app:is([data-screen="countdown"], [data-screen="play"], [data-screen="pause"]) .topbar {
+  background: linear-gradient(rgb(10 14 26 / 85%), rgb(10 14 26 / 0%));
+}
+
+.topbar button {
+  pointer-events: auto;
+}
+
 .hud {
   --shown-display: flex;
-  position: absolute;
-  inset: 0 0 auto;
-  gap: 4cqw;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0 4cqw;
   align-items: center;
-  padding: 2cqw 32cqw 6cqw 3cqw;
-  background: linear-gradient(rgb(10 14 26 / 85%), rgb(10 14 26 / 0%));
-  font-size: max(14px, 4.2cqw);
+  min-width: 0;
+  min-height: var(--min-target);
+  font-size: 1rem;
 }
 
 .hud-item {
   margin: 0;
-  white-space: nowrap;
+}
+
+.controls {
+  display: flex;
+  flex: none;
+  gap: 2cqw;
+  margin-left: auto;
 }
 
 .hud-value {
@@ -119,22 +170,17 @@ h2[tabindex="-1"]:focus {
 }
 
 .icon-button {
-  position: absolute;
-  top: 2cqw;
-  right: 17cqw;
+  --shown-display: inline-block;
   padding: 0;
-  font-size: max(16px, 4.4cqw);
+  font-size: 1.125rem;
   background: rgb(10 14 26 / 60%);
 }
 
 .mute-button {
-  position: absolute;
-  top: 2cqw;
-  right: 2cqw;
-  padding: 0 0.6em;
-  font-size: max(12px, 3.4cqw);
-  background: rgb(10 14 26 / 60%);
   --shown-display: inline-block;
+  padding: 0 0.6em;
+  font-size: 0.875rem;
+  background: rgb(10 14 26 / 60%);
 }
 
 /* 消音中は塗りと取り消し線でも示す． */
@@ -156,9 +202,9 @@ h2[tabindex="-1"]:focus {
   padding: 5cqw 6cqw;
   border-radius: 4cqw;
   background: var(--panel);
-  font-size: max(13px, 3.7cqw);
+  font-size: 0.9375rem;
   line-height: 1.6;
-  touch-action: pan-y;
+  touch-action: manipulation;
   user-select: text;
   -webkit-user-select: text;
 }
@@ -317,7 +363,7 @@ h2[tabindex="-1"]:focus {
 
 #countdown-number {
   margin: 0;
-  font-size: 30cqw;
+  font-size: 7rem;
   font-weight: 800;
   color: var(--text);
   text-shadow: 0 0.6cqw 2cqw rgb(0 0 0 / 70%);
@@ -336,21 +382,24 @@ h2[tabindex="-1"]:focus {
 }
 
 .kanpai-status {
+  max-width: 92cqw;
   margin: 0;
   padding: 0.2em 0.9em;
   border-radius: 999px;
   background: rgb(10 14 26 / 80%);
-  font-size: max(12px, 3.4cqw);
+  font-size: 0.875rem;
   font-weight: 700;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .kanpai-button {
-  width: 44cqw;
-  height: 15cqw;
+  min-width: 44cqw;
+  max-width: 92cqw;
+  min-height: 15cqw;
+  white-space: nowrap;
   border: 0.8cqw solid var(--text);
   background: var(--wine);
-  font-size: max(18px, 6.2cqw);
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   box-shadow: 0 1cqw 0 rgb(0 0 0 / 45%);
@@ -360,6 +409,13 @@ h2[tabindex="-1"]:focus {
 .kanpai-button:active {
   transform: translateY(0.6cqw);
   box-shadow: 0 0.4cqw 0 rgb(0 0 0 / 45%);
+}
+
+/* 押した感じの影を残したまま，焦点枠の縁取りを重ねる． */
+.kanpai-button:focus-visible {
+  box-shadow:
+    var(--focus-edge),
+    0 1cqw 0 rgb(0 0 0 / 45%);
 }
 
 #app[data-kanpai="plus"] .kanpai-button {
