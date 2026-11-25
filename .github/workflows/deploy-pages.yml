@@ -18,7 +18,7 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: false
 
-# 公開するのは main だけとする．手動実行で別のブランチを選んだときは何もしない．
+# 各 job の if で，公開するのは main だけとする．手動実行で別のブランチを選んだときは何もしない．
 jobs:
   build:
     name: Build
