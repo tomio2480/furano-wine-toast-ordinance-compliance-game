@@ -99,7 +99,7 @@ test("文面をコピーできる", async ({ page, context }) => {
   await page.getByRole("button", { name: "文面をコピー" }).click();
   await expect(page.locator("#share-status")).toHaveText("コピーしました。");
   const copied = await page.evaluate(() => navigator.clipboard.readText());
-  expect(copied).toContain("#乾杯条例ディフェンス");
+  expect(copied).toContain("#乾杯条例ガーディアン");
   expect(copied).toContain(GAME_URL);
 });
 

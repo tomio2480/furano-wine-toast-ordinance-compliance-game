@@ -2,7 +2,7 @@
   "name": "furano-wine-toast-ordinance-compliance-game",
   "version": "0.1.0",
   "private": true,
-  "description": "乾杯条例ディフェンス: 富良野市の乾杯条例を題材にしたブラウザゲーム",
+  "description": "乾杯条例ガーディアン: 富良野市の乾杯条例を題材にしたブラウザゲーム",
   "license": "MIT",
   "type": "module",
   "engines": {
