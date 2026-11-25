@@ -110,14 +110,84 @@ test("タブが隠れると一時停止する", async ({ page }) => {
   await expect(page.locator("#app")).toHaveAttribute("data-screen", "pause");
 });
 
-test("ほかのボタンに焦点があれば，Space はそのボタンを押す", async ({ page }) => {
-  await startPlaying(page);
+test("キーボードでほかのボタンへ移ったら，Space はそのボタンを押す", async ({ page }) => {
+  await page.getByRole("button", { name: "はじめる" }).focus();
+  await page.keyboard.press("Enter");
+  await page.clock.runFor(COUNTDOWN_MS + MARGIN_MS);
+  await expect(page.locator("#kanpai-button")).toBeFocused();
   const mute = page.getByRole("button", { name: "消音" });
-  await mute.focus();
+  while (!(await mute.evaluate((element) => element === document.activeElement))) {
+    await page.keyboard.press("Shift+Tab");
+  }
   await page.keyboard.press("Space");
   await page.clock.runFor(100);
   await expect(mute).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#kanpai-status")).toHaveText("長押しで乾杯");
+});
+
+test("マウスで消音を押した後も，Space の長押しで乾杯できる", async ({ page }) => {
+  await startPlaying(page);
+  await page.clock.runFor(1_000);
+  const mute = page.getByRole("button", { name: "消音" });
+  await mute.click();
+  await expect(mute).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.down("Space");
+  await page.clock.runFor(100);
+  await expect(page.locator("#kanpai-status")).toHaveText(/加点中|減点中/);
+  await page.keyboard.up("Space");
+  await expect(mute).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Ctrl を押しながらの数字キーでは投げない", async ({ page }) => {
+  await startPlaying(page);
+  await page.clock.runFor(1_500);
+  for (const key of ["1", "2", "3", "4", "5", "6", "7"]) {
+    await page.keyboard.press(`Control+${key}`);
+  }
+  await page.clock.runFor(50);
+  await expect(page.locator("#score")).toHaveText("0");
+});
+
+test("止まった画面では効果音も止め，再開の操作で鳴らし直す", async ({ page }) => {
+  await page.addInitScript(() => {
+    const calls = { suspend: 0, resume: 0 };
+    (window as unknown as { audioCalls: typeof calls }).audioCalls = calls;
+    const silentNode = () => ({
+      connect: (target: unknown) => target,
+      frequency: { setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined },
+      gain: { setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined },
+      start: () => undefined,
+      stop: () => undefined,
+      type: "sine",
+    });
+    class FakeAudioContext {
+      currentTime = 0;
+      destination = {};
+      createOscillator = silentNode;
+      createGain = silentNode;
+      resume() {
+        calls.resume += 1;
+        return Promise.resolve();
+      }
+      suspend() {
+        calls.suspend += 1;
+        return Promise.resolve();
+      }
+    }
+    Object.defineProperty(window, "AudioContext", { value: FakeAudioContext, configurable: true });
+  });
+  await page.reload();
+  const audioCalls = () =>
+    page.evaluate(() => (window as unknown as { audioCalls: { suspend: number; resume: number } }).audioCalls);
+
+  await startPlaying(page);
+  expect((await audioCalls()).suspend).toBe(0);
+  await page.keyboard.press("Escape");
+  await page.clock.runFor(1_000);
+  const paused = await audioCalls();
+  expect(paused.suspend).toBe(1);
+  await page.getByRole("button", { name: "再開する" }).click();
+  expect((await audioCalls()).resume).toBe(paused.resume + 1);
 });
 
 test("止まった画面では描き続けず，遊んでいる間だけ描き続ける", async ({ page }) => {
@@ -149,6 +219,17 @@ test("止まった画面では描き続けず，遊んでいる間だけ描き�
   const paused = await frameRequests();
   await page.clock.runFor(1_000);
   expect(await frameRequests()).toBe(paused);
+
+  await page.getByRole("button", { name: "再開する" }).click();
+  await page.clock.runFor(1_000);
+  expect(await frameRequests()).toBeGreaterThan(paused);
+
+  await page.clock.runFor(GAME_MS);
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "result");
+  await page.clock.runFor(100);
+  const atResult = await frameRequests();
+  await page.clock.runFor(1_000);
+  expect(await frameRequests()).toBe(atResult);
 });
 
 /** 枠を順に狙い，得点が動いたところで止める．最初の 1 人は 0.3 秒に現れ，2 秒以上とどまる． */

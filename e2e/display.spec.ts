@@ -20,11 +20,17 @@ async function startWithKeyboard(page: Page): Promise<void> {
   await expect(page.locator("#app")).toHaveAttribute("data-screen", "play");
 }
 
+/** 要素が見つからなければ失敗させ，セレクタの誤りで検査が空振りしないようにする． */
 async function fontSizes(page: Page, selectors: readonly string[]): Promise<number[]> {
-  return page.evaluate(
-    (list) => list.map((selector) => Number.parseFloat(getComputedStyle(document.querySelector(selector) ?? document.body).fontSize)),
-    selectors,
-  );
+  return page.evaluate((list) => {
+    return list.map((selector) => {
+      const element = document.querySelector(selector);
+      if (element === null) {
+        throw new Error(`${selector} が見つかりません`);
+      }
+      return Number.parseFloat(getComputedStyle(element).fontSize);
+    });
+  }, selectors);
 }
 
 async function expectInsideStage(page: Page, target: Locator): Promise<void> {
@@ -124,11 +130,32 @@ test("文字を 2 倍にしても，残り時間・得点・乾杯の表示が�
     await expectApart(item, pause);
     await expectApart(item, mute);
   }
-  const kanpaiHeight = await page.locator("#kanpai-button").evaluate((element) => {
+  const isLabelInside = await page
+    .locator("#kanpai-button")
+    .evaluate((element) => element.scrollWidth <= element.clientWidth);
+  expect(isLabelInside, "乾杯ボタンの文字が枠からはみ出さない").toBe(true);
+});
+
+test("減点中の長い状態表示も，1 倍の文字なら 1 行に収まる", async ({ page }) => {
+  await startWithKeyboard(page);
+  const status = page.locator("#kanpai-status");
+  const isOneLine = await status.evaluate((element) => {
+    element.textContent = "減点中 -76 不適合者がいます";
     const lineHeight = Number.parseFloat(getComputedStyle(element).fontSize) * 1.6;
-    return element.getBoundingClientRect().height < lineHeight * 2;
+    return element.getBoundingClientRect().height < lineHeight * 1.5 + 8;
   });
-  expect(kanpaiHeight, "乾杯ボタンの文字が 1 行に収まる").toBe(true);
+  expect(isOneLine).toBe(true);
+});
+
+test("メニューのパネルは上部の帯の下から始まり，消音ボタンに覆われない", async ({ page }) => {
+  const panel = await page.locator(".panel").first().boundingBox();
+  const mute = await page.getByRole("button", { name: "消音" }).boundingBox();
+  expect(panel).not.toBeNull();
+  expect(mute).not.toBeNull();
+  if (panel === null || mute === null) {
+    return;
+  }
+  expect(panel.y).toBeGreaterThanOrEqual(mute.y + mute.height);
 });
 
 test("OS の文字の大きさに合わせるよう宣言する", async ({ page }) => {

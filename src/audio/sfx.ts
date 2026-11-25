@@ -40,6 +40,8 @@ const RECIPES: Readonly<Record<SoundName, readonly Tone[]>> = {
 
 const SILENT_GAIN = 0.0001;
 const MS_PER_SECOND = 1_000;
+/** 止めるまでの余白．Bluetooth の機器などの出力の遅れで，音の末尾が切れないようにする． */
+const SUSPEND_MARGIN_MS = 250;
 
 function playTone(ctx: AudioContext, sound: Tone): void {
   const start = ctx.currentTime + sound.delayMs / MS_PER_SECOND;
@@ -77,11 +79,26 @@ export class Sfx {
   unlock(): void {
     clearTimeout(this.#suspendTimer);
     this.#suspendTimer = undefined;
-    const context = this.#context ?? this.#createContext();
+    const context = this.#context ?? this.#open();
+    if (context === undefined) {
+      return;
+    }
     this.#context = context;
     context.resume().catch(() => {
       this.#context = undefined;
     });
+  }
+
+  /** AudioContext を作る．時計は 0 から始まるため，前の時計で求めた終わりの時刻は捨てる． */
+  #open(): AudioContext | undefined {
+    try {
+      const context = this.#createContext();
+      this.#busyUntil = 0;
+      return context;
+    } catch {
+      // Web Audio を使えない環境では，効果音なしで遊べるようにする．
+      return undefined;
+    }
   }
 
   play(name: SoundName): void {
@@ -105,7 +122,8 @@ export class Sfx {
       return;
     }
     clearTimeout(this.#suspendTimer);
-    const waitMs = Math.max(0, Math.round((this.#busyUntil - context.currentTime) * MS_PER_SECOND));
+    const remainingMs = Math.max(0, Math.round((this.#busyUntil - context.currentTime) * MS_PER_SECOND));
+    const waitMs = remainingMs + SUSPEND_MARGIN_MS;
     this.#suspendTimer = setTimeout(() => {
       this.#suspendTimer = undefined;
       context.suspend().catch(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keyAction, yieldsToFocusedButton } from "./keys";
+import { isPlainKey, keyAction, yieldsToFocusedButton } from "./keys";
 
 describe("keyAction", () => {
   it("Space は乾杯", () => {
@@ -43,5 +43,17 @@ describe("yieldsToFocusedButton", () => {
   it("数字キーと一時停止のキーは，焦点の位置にかかわらず働く", () => {
     expect(yieldsToFocusedButton({ kind: "throw", slotId: 1 }, button, false)).toBe(false);
     expect(yieldsToFocusedButton({ kind: "pause" }, button, false)).toBe(false);
+  });
+});
+
+describe("isPlainKey", () => {
+  const plain = { ctrlKey: false, altKey: false, metaKey: false };
+
+  it("修飾キーを押していなければ，ゲームの操作に使う", () => {
+    expect(isPlainKey(plain)).toBe(true);
+  });
+
+  it.each(["ctrlKey", "altKey", "metaKey"] as const)("%s と一緒に押したキーは，ブラウザや OS の操作に任せる", (modifier) => {
+    expect(isPlainKey({ ...plain, [modifier]: true })).toBe(false);
   });
 });

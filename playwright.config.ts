@@ -5,6 +5,8 @@ const BASE_PATH = "/furano-wine-toast-ordinance-compliance-game/";
 
 export default defineConfig({
   testDir: "e2e",
+  // 60 秒のゲームを偽の時計で通す検査は，並列に走らせると 30 秒を超えることがある．
+  timeout: 60_000,
   forbidOnly: Boolean(process.env["CI"]),
   retries: process.env["CI"] ? 1 : 0,
   reporter: "list",

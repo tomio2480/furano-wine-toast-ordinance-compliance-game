@@ -37,7 +37,8 @@ function contentSecurityPolicy(): Plugin {
         throw new Error(`index.html に ${CHARSET_META} が見つからないため，CSP を差し込めません`);
       }
       const csp = `<meta http-equiv="Content-Security-Policy" content="${CONTENT_SECURITY_POLICY}" />`;
-      return html.replace(CHARSET_META, `${CHARSET_META}\n    ${csp}`);
+      // 置換を関数で渡し，置換文字列の $ を特殊文字として解釈させない．
+      return html.replace(CHARSET_META, () => `${CHARSET_META}\n    ${csp}`);
     },
   };
 }

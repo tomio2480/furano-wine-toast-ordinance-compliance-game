@@ -12,7 +12,7 @@ import {
   type Point,
 } from "../core/targeting";
 import { HoldTracker } from "../input/hold";
-import { keyAction, yieldsToFocusedButton, type KeyAction } from "../input/keys";
+import { isPlainKey, keyAction, yieldsToFocusedButton, type KeyAction } from "../input/keys";
 import { watchMotionPreference } from "../render/motion";
 import { Renderer } from "../render/renderer";
 import { toStagePoint } from "../render/viewport";
@@ -183,7 +183,7 @@ class App {
   }
 
   handleKeyDown(event: KeyboardEvent): void {
-    const action = keyAction(event.code);
+    const action = isPlainKey(event) ? keyAction(event.code) : undefined;
     if (action === undefined || !KEY_SCREENS.has(this.#screen) || this.#yieldsToButton(action)) {
       return;
     }
@@ -194,6 +194,16 @@ class App {
   #yieldsToButton(action: KeyAction): boolean {
     const focused = this.#ui.app.ownerDocument.activeElement;
     return yieldsToFocusedButton(action, focused, focused === this.#ui.kanpaiButton);
+  }
+
+  /**
+   * 遊んでいる間にポインタで押したボタンからは，焦点を乾杯ボタンへ戻す．
+   * 焦点が残ると，次の Space がそのボタンの操作に譲られ，乾杯できなくなるためである．
+   */
+  returnFocusAfterPointer(): void {
+    if (KEY_SCREENS.has(this.#screen)) {
+      this.#ui.kanpaiButton.focus();
+    }
   }
 
   handleKeyUp(event: KeyboardEvent): void {
@@ -336,8 +346,12 @@ function bindButtons(ui: Elements, app: App): void {
   ui.pauseButton.addEventListener("click", () => {
     app.dispatch("pause");
   });
-  ui.muteButton.addEventListener("click", () => {
+  ui.muteButton.addEventListener("click", (event) => {
     app.toggleMute();
+    // detail はポインタでの押下で 1 以上，キーボードでの押下で 0 になる．
+    if (event.detail > 0) {
+      app.returnFocusAfterPointer();
+    }
   });
 }
 
@@ -382,10 +396,11 @@ function bindWindow(doc: Document, win: Window, app: App): void {
     app.releaseAll();
   });
   doc.addEventListener("visibilitychange", () => {
-    app.releaseAll();
     if (doc.visibilityState === "hidden") {
       app.hide();
+      return;
     }
+    app.releaseAll();
   });
 }
 

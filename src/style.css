@@ -17,6 +17,8 @@
   --focus: #ffd54a;
   --focus-edge: 0 0 0 7px var(--bg);
   --min-target: 44px;
+  /* 上部の帯が占める高さの目安．帯の余白，ボタンの高さ，焦点枠の分を足す． */
+  --topbar-clearance: calc(2cqw + var(--min-target) + 0.75rem + 8px);
 }
 
 * {
@@ -24,8 +26,8 @@
 }
 
 html {
-  /* ピンチ拡大を許す代わりに，引っ張って再読み込みする動作は止める． */
-  overscroll-behavior: none;
+  /* ピンチ拡大を許す代わりに，引っ張って再読み込みする動作は止める．横のスワイプでの戻る・進むは残す． */
+  overscroll-behavior-y: none;
 }
 
 html,
@@ -194,7 +196,8 @@ h2[tabindex="-1"]:focus {
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
   width: 88%;
-  max-height: 88%;
+  /* 上部の帯（消音ボタン）の下から始まるよう，上下に帯の高さ分をあける． */
+  max-height: min(88%, calc(100% - 2 * var(--topbar-clearance)));
   overflow-y: auto;
   padding: 5cqw 6cqw;
   border-radius: 4cqw;
@@ -373,12 +376,12 @@ h2[tabindex="-1"]:focus {
 }
 
 /* 乾杯ボタン．状態は色に加え，模様と文字でも示す． */
+/* 横幅いっぱいに置き，状態表示が舞台の幅まで使えるようにする．すき間はキャンバスへの操作を通す． */
 .kanpai {
   --shown-display: flex;
   position: absolute;
-  left: 50%;
-  bottom: 2.5cqw;
-  transform: translateX(-50%);
+  inset: auto 0 2.5cqw;
+  pointer-events: none;
   flex-direction: column;
   align-items: center;
   gap: 1.2cqw;
@@ -407,6 +410,7 @@ h2[tabindex="-1"]:focus {
   letter-spacing: 0.2em;
   box-shadow: 0 1cqw 0 rgb(0 0 0 / 45%);
   touch-action: none;
+  pointer-events: auto;
 }
 
 .kanpai-button:active {
