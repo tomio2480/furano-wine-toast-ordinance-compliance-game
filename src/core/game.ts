@@ -232,6 +232,8 @@ export interface GameResult {
   readonly kanpaiMinusPoints: number;
   /** 加点区間の単位数．投稿文の乾杯秒数に使う． */
   readonly kanpaiPlusUnits: number;
+  /** 減点区間の単位数．結果の内訳に秒数として出す． */
+  readonly kanpaiMinusUnits: number;
 }
 
 /** 回数と 1 回あたりの得点を掛ける．0 × 負の数は -0 になり「-0」と表示されるため，0 にそろえる． */
@@ -255,5 +257,6 @@ export function summarize(state: GameState): GameResult {
     kanpaiPlusPoints,
     kanpaiMinusPoints,
     kanpaiPlusUnits: units.plus,
+    kanpaiMinusUnits: units.minus,
   };
 }
