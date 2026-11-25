@@ -11,7 +11,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # main への push は打ち切らず，コミットごとに結果を残す．
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # ビルドは E2E の job（Playwright の webServer）とデプロイの workflow で行う．

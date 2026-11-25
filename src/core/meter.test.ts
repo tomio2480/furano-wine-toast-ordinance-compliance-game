@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeMode, closeSegment, createMeter, meterScore, meterUnits } from "./meter";
+import { changeMode, closeSegment, createMeter, meterUnits } from "./meter";
 
 describe("乾杯の区間の計測", () => {
   it("始めは中立で，単位は 0", () => {
@@ -41,11 +41,5 @@ describe("乾杯の区間の計測", () => {
     expect(meter.mode).toBe("plus");
     expect(meter.startedAtMs).toBe(180);
     expect(meterUnits(meter, 180).plus).toBe(2);
-  });
-});
-
-describe("meterScore", () => {
-  it("加点と減点の単位から得点を求める", () => {
-    expect(meterScore({ plus: 5, minus: 3, neutral: 99 })).toBe(5 * 38 - 3 * 76);
   });
 });

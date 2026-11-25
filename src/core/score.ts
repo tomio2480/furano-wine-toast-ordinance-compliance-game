@@ -6,8 +6,3 @@ export type KanpaiMode = keyof typeof KANPAI_UNIT_SCORE;
 export function unitsFor(durationMs: number): number {
   return Math.ceil(Math.max(0, durationMs) / KANPAI_UNIT_MS);
 }
-
-/** 区間の得点（整数）を返す． */
-export function kanpaiDelta(mode: KanpaiMode, durationMs: number): number {
-  return unitsFor(durationMs) * KANPAI_UNIT_SCORE[mode];
-}
