@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { SLOTS, STAGE } from "../src/config";
+import { hitboxCenter } from "../src/core/targeting";
 
 const COUNTDOWN_MS = 3_000;
 const GAME_MS = 60_000;
@@ -106,6 +108,91 @@ test("タブが隠れると一時停止する", async ({ page }) => {
     document.dispatchEvent(new Event("visibilitychange"));
   });
   await expect(page.locator("#app")).toHaveAttribute("data-screen", "pause");
+});
+
+/** 枠を順に狙い，得点が動いたところで止める．最初の 1 人は 0.3 秒に現れ，2 秒以上とどまる． */
+async function throwUntilScored(page: Page, throwAt: (slotIndex: number) => Promise<void>): Promise<void> {
+  const score = page.locator("#score");
+  for (let index = 0; index < SLOTS.length; index++) {
+    await throwAt(index);
+    await page.clock.runFor(50);
+    if ((await score.textContent()) !== "0") {
+      return;
+    }
+  }
+}
+
+async function clickSlot(page: Page, slotIndex: number, button: "left" | "right"): Promise<void> {
+  const slot = SLOTS[slotIndex];
+  const box = await page.locator("#scene").boundingBox();
+  if (slot === undefined || box === null) {
+    throw new Error(`枠 ${String(slotIndex)} かキャンバスが見つかりません`);
+  }
+  const point = hitboxCenter(slot);
+  const x = box.x + (point.x / STAGE.width) * box.width;
+  const y = box.y + (point.y / STAGE.height) * box.height;
+  await page.mouse.click(x, y, { button });
+}
+
+test("数字キーで枠を選んで投げると当たり，得点が動く", async ({ page }) => {
+  await startPlaying(page);
+  await page.clock.runFor(1_500);
+  await throwUntilScored(page, (index) => page.keyboard.press(String(index + 1)));
+  await expect(page.locator("#score")).not.toHaveText("0");
+});
+
+test("キャンバスの右クリックでは投げず，左クリックで人を狙うと当たる", async ({ page }) => {
+  await startPlaying(page);
+  await page.clock.runFor(1_500);
+  for (let index = 0; index < SLOTS.length; index++) {
+    await clickSlot(page, index, "right");
+  }
+  await page.clock.runFor(50);
+  await expect(page.locator("#score")).toHaveText("0");
+  await throwUntilScored(page, (index) => clickSlot(page, index, "left"));
+  await expect(page.locator("#score")).not.toHaveText("0");
+});
+
+test("乾杯ボタンは複数の指を区別し，指がずれても押下を続ける", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.use.hasTouch !== true, "タッチ操作は携帯端末の設定でだけ確かめる");
+  await startPlaying(page);
+  await page.clock.runFor(1_000);
+  const box = await page.locator("#kanpai-button").boundingBox();
+  if (box === null) {
+    throw new Error("乾杯ボタンが見つかりません");
+  }
+  const cdp = await page.context().newCDPSession(page);
+  const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const finger = (id: number, dx: number, y = center.y) => ({ id, x: center.x + dx, y });
+  type TouchType = "touchStart" | "touchEnd" | "touchMove" | "touchCancel";
+  const touch = (type: TouchType, touchPoints: ReturnType<typeof finger>[]) =>
+    cdp.send("Input.dispatchTouchEvent", { type, touchPoints });
+  const status = page.locator("#kanpai-status");
+  const isHeld = /加点中|減点中/;
+
+  await touch("touchStart", [finger(1, -20)]);
+  await touch("touchStart", [finger(1, -20), finger(2, 20)]);
+  await page.clock.runFor(100);
+  await expect(status).toHaveText(isHeld);
+
+  await touch("touchEnd", [finger(2, 20)]);
+  await page.clock.runFor(100);
+  await expect(status).toHaveText(isHeld);
+
+  await touch("touchMove", [finger(2, 20, box.y - 80)]);
+  await page.clock.runFor(100);
+  await expect(status).toHaveText(isHeld);
+
+  await touch("touchEnd", []);
+  await page.clock.runFor(100);
+  await expect(status).toHaveText("長押しで乾杯");
+
+  await touch("touchStart", [finger(3, 0)]);
+  await page.clock.runFor(100);
+  await expect(status).toHaveText(isHeld);
+  await touch("touchCancel", []);
+  await page.clock.runFor(100);
+  await expect(status).toHaveText("長押しで乾杯");
 });
 
 test("数字キーで投げても動作が止まらない", async ({ page }) => {

@@ -13,6 +13,17 @@ function fakeClock(startMs = 1_000) {
 }
 
 describe("PlaySession", () => {
+  it("新しいゲームでは，前のゲームで外れた雪玉を持ち越さない", () => {
+    const clock = fakeClock();
+    const session = new PlaySession(clock.now, () => 0, { firstSpawnAtMs: Number.POSITIVE_INFINITY });
+    session.run();
+    clock.tick(59_800);
+    session.missAt({ x: 180, y: 400 });
+    expect(session.game.misses).toHaveLength(1);
+    session.newGame();
+    expect(session.game.misses).toEqual([]);
+  });
+
   it("走らせていない間は時間が進まない", () => {
     const clock = fakeClock();
     const session = new PlaySession(clock.now, () => 0);
