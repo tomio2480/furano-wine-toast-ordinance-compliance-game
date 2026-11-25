@@ -12,8 +12,13 @@ on:
 
 permissions: {}
 
+# build と deploy を 1 つの実行として順に並べ，古いコミットが後から公開されないようにする．
+# グループを ref ごとに分け，main 以外の手動実行が main の待ち行列を乱さないようにする．
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
 # 公開するのは main だけとする．手動実行で別のブランチを選んだときは何もしない．
-# concurrency は deploy の job に置き，main 以外の実行が公開の待ち行列を乱さないようにする．
 jobs:
   build:
     name: Build
@@ -46,9 +51,6 @@ jobs:
     name: Deploy
     needs: build
     if: github.ref == 'refs/heads/main'
-    concurrency:
-      group: pages
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
