@@ -12,13 +12,14 @@ import {
   type Point,
 } from "../core/targeting";
 import { HoldTracker } from "../input/hold";
-import { keyAction, type KeyAction } from "../input/keys";
-import { FULL_MOTION, REDUCED_MOTION } from "../render/effects";
+import { keyAction, yieldsToFocusedButton, type KeyAction } from "../input/keys";
+import { watchMotionPreference } from "../render/motion";
 import { Renderer } from "../render/renderer";
 import { toStagePoint } from "../render/viewport";
 import { buildShareText, type ShareText } from "../share/share";
 import { getElements, setData, setText, type Elements } from "./dom";
 import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
+import { FrameLoop } from "./frame-loop";
 import { bindShareButtons, renderResult } from "./result-view";
 import { PlaySession, type Clock } from "./session";
 
@@ -34,11 +35,15 @@ const KEY_SCREENS: ReadonlySet<Screen> = new Set(["countdown", "play"]);
 
 const noop = () => undefined;
 
+/** 利用者の操作から始まり，効果音を鳴らし始める画面遷移． */
+type GestureEvent = Extract<ScreenEvent, "start" | "resume" | "retry">;
+
 class App {
   readonly #ui: Elements;
   readonly #clock: Clock;
   readonly #session: PlaySession;
   readonly #renderer: Renderer;
+  readonly #loop: FrameLoop;
   readonly #hold = new HoldTracker();
   readonly #sfx = new Sfx();
   #screen: Screen = "title";
@@ -84,12 +89,35 @@ class App {
     result: noop,
   };
 
+  /**
+   * 動きのある画面でだけ描き続ける．止まった画面では描画と効果音を休ませ，
+   * 5 秒を超えて動き続ける演出をメニューの横に出さない（WCAG 2.2.2）．
+   */
+  readonly #activity: Readonly<Record<Screen, () => void>> = {
+    title: () => {
+      this.#rest();
+    },
+    countdown: () => {
+      this.#loop.run();
+    },
+    play: () => {
+      this.#loop.run();
+    },
+    pause: () => {
+      this.#rest();
+    },
+    result: () => {
+      this.#rest();
+    },
+  };
+
   readonly #focusTarget: Readonly<Record<Screen, () => HTMLElement>>;
 
-  constructor(ui: Elements, clock: Clock, renderer: Renderer) {
+  constructor(ui: Elements, clock: Clock, renderer: Renderer, loop: FrameLoop) {
     this.#ui = ui;
     this.#clock = clock;
     this.#renderer = renderer;
+    this.#loop = loop;
     this.#session = new PlaySession(clock, createRandom(Date.now()));
     this.#shareText = buildShareText(summarize(this.#session.game));
     this.#focusTarget = {
@@ -109,6 +137,7 @@ class App {
     this.#onEvent[event]?.();
     this.#screen = next;
     this.#onEnter[next]();
+    this.#activity[next]();
     setData(this.#ui.app, "screen", next);
     this.#focusTarget[next]().focus();
   }
@@ -121,9 +150,17 @@ class App {
     this.#renderer.draw(this.#session.game, frameMs);
   }
 
-  start(): void {
+  /** ボタンの操作で遊びを始める・再開する．効果音もこの操作の中で鳴らせるようにする． */
+  begin(event: GestureEvent): void {
     this.#sfx.unlock();
-    this.dispatch("start");
+    this.dispatch(event);
+  }
+
+  /** タブが隠れたら一時停止し，音も止める． */
+  hide(): void {
+    this.releaseAll();
+    this.dispatch("pause");
+    this.#sfx.suspendWhenIdle();
   }
 
   get shareText(): ShareText {
@@ -145,11 +182,16 @@ class App {
 
   handleKeyDown(event: KeyboardEvent): void {
     const action = keyAction(event.code);
-    if (action === undefined || !KEY_SCREENS.has(this.#screen)) {
+    if (action === undefined || !KEY_SCREENS.has(this.#screen) || this.#yieldsToButton(action)) {
       return;
     }
     event.preventDefault();
     this.#runKeyAction(action, event.repeat);
+  }
+
+  #yieldsToButton(action: KeyAction): boolean {
+    const focused = this.#ui.app.ownerDocument.activeElement;
+    return yieldsToFocusedButton(action, focused, focused === this.#ui.kanpaiButton);
   }
 
   handleKeyUp(event: KeyboardEvent): void {
@@ -243,6 +285,11 @@ class App {
     this.#session.halt();
   }
 
+  #rest(): void {
+    this.#loop.still();
+    this.#sfx.suspendWhenIdle();
+  }
+
   #finish(): void {
     this.#stop();
     this.#shareText = renderResult(this.#ui, summarize(this.#session.game));
@@ -273,13 +320,13 @@ class App {
 
 function bindButtons(ui: Elements, app: App): void {
   ui.startButton.addEventListener("click", () => {
-    app.start();
+    app.begin("start");
   });
   ui.resumeButton.addEventListener("click", () => {
-    app.dispatch("resume");
+    app.begin("resume");
   });
   ui.retryButton.addEventListener("click", () => {
-    app.dispatch("retry");
+    app.begin("retry");
   });
   ui.titleButton.addEventListener("click", () => {
     app.dispatch("toTitle");
@@ -331,16 +378,24 @@ function bindWindow(doc: Document, win: Window, app: App): void {
   doc.addEventListener("visibilitychange", () => {
     app.releaseAll();
     if (doc.visibilityState === "hidden") {
-      app.dispatch("pause");
+      app.hide();
     }
   });
 }
 
 export function startApp(doc: Document, win: Window): void {
   const ui = getElements(doc);
-  const reduced = win.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const renderer = new Renderer(ui.canvas, reduced ? REDUCED_MOTION : FULL_MOTION);
-  const app = new App(ui, () => Math.round(win.performance.now()), renderer);
+  const renderer = new Renderer(ui.canvas);
+  watchMotionPreference(win.matchMedia("(prefers-reduced-motion: reduce)"), (profile) => {
+    renderer.setMotion(profile);
+  });
+  const loop = new FrameLoop(
+    (callback) => win.requestAnimationFrame(callback),
+    (frameMs) => {
+      app.frame(frameMs);
+    },
+  );
+  const app = new App(ui, () => Math.round(win.performance.now()), renderer, loop);
   bindButtons(ui, app);
   bindKanpaiButton(ui.kanpaiButton, app);
   bindStage(ui, app);
@@ -348,12 +403,8 @@ export function startApp(doc: Document, win: Window): void {
   bindShareButtons(ui, win.navigator, () => app.shareText);
   const resize = () => {
     renderer.resize(ui.stage.clientWidth, win.devicePixelRatio);
+    loop.refresh();
   };
   new ResizeObserver(resize).observe(ui.stage);
   resize();
-  const loop = (frameMs: number) => {
-    app.frame(frameMs);
-    win.requestAnimationFrame(loop);
-  };
-  win.requestAnimationFrame(loop);
 }

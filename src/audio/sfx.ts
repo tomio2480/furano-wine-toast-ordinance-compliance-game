@@ -56,13 +56,28 @@ function playTone(ctx: AudioContext, sound: Tone): void {
   oscillator.stop(end);
 }
 
+/** 効果音が鳴り終わるまでの長さ（ms）． */
+function soundLengthMs(name: SoundName): number {
+  return Math.max(...RECIPES[name].map((sound) => sound.delayMs + sound.durationMs));
+}
+
 export class Sfx {
+  readonly #createContext: () => AudioContext;
   #context: AudioContext | undefined;
+  /** 予約した音が鳴り終わる時刻（AudioContext の秒）． */
+  #busyUntil = 0;
+  #suspendTimer: ReturnType<typeof setTimeout> | undefined;
   muted = false;
+
+  constructor(createContext: () => AudioContext = () => new AudioContext()) {
+    this.#createContext = createContext;
+  }
 
   /** 利用者の操作の中で呼ぶ．再生を許可されなかったときは，次の操作で作り直す． */
   unlock(): void {
-    const context = this.#context ?? new AudioContext();
+    clearTimeout(this.#suspendTimer);
+    this.#suspendTimer = undefined;
+    const context = this.#context ?? this.#createContext();
     this.#context = context;
     context.resume().catch(() => {
       this.#context = undefined;
@@ -77,5 +92,23 @@ export class Sfx {
     for (const sound of RECIPES[name]) {
       playTone(context, sound);
     }
+    this.#busyUntil = Math.max(this.#busyUntil, context.currentTime + soundLengthMs(name) / MS_PER_SECOND);
+  }
+
+  /**
+   * 鳴っている音が終わったら AudioContext を止め，電池の消費を抑える．
+   * 止めた後は，利用者の操作の中で呼ぶ unlock で再開する．
+   */
+  suspendWhenIdle(): void {
+    const context = this.#context;
+    if (context === undefined) {
+      return;
+    }
+    clearTimeout(this.#suspendTimer);
+    const waitMs = Math.max(0, Math.round((this.#busyUntil - context.currentTime) * MS_PER_SECOND));
+    this.#suspendTimer = setTimeout(() => {
+      this.#suspendTimer = undefined;
+      void context.suspend();
+    }, waitMs);
   }
 }

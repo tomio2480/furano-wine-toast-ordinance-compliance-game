@@ -380,10 +380,3 @@ h2[tabindex="-1"]:focus {
 #app[data-kanpai="minus"] .kanpai-status {
   background: var(--bad);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
-}

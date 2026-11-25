@@ -1,27 +1,20 @@
 import { EXIT_ANIMATION_MS, STAGE, type Row, type Slot } from "../config";
-import type { Exit, ExitReason, GameState, Participant } from "../core/game";
+import type { Exit, GameState, Participant } from "../core/game";
 import { findSlot, hitboxCenter, type Point } from "../core/targeting";
 import { appearanceFor } from "./appearance";
+import { drawBurst, drawKanpaiEffect, drawMiss, drawPopup, drawSnowball, drawWindowSnow } from "./effects";
 import {
-  drawBurst,
-  drawKanpaiEffect,
-  drawMiss,
-  drawPopup,
-  drawSnowball,
-  drawWindowSnow,
+  CALM,
+  exitPlacement,
+  exitPopup,
+  FULL_MOTION,
+  progress,
   type MotionProfile,
-} from "./effects";
-import { exitPopup, progress } from "./motion";
+  type Placement,
+} from "./motion";
 import type { Ctx } from "./paint";
-import { drawPerson, type Pose } from "./people";
+import { drawPerson } from "./people";
 import { paintBackground, paintTable } from "./scene";
-
-interface Placement {
-  readonly alpha: number;
-  readonly dx: number;
-  readonly dy: number;
-  readonly pose: Pose;
-}
 
 interface Miss {
   readonly point: Point;
@@ -29,7 +22,6 @@ interface Miss {
 }
 
 const MISS_VISIBLE_MS = 500;
-const CALM: Pose = { surprised: false, snow: 0 };
 
 function slotOf(participant: Participant): Slot {
   const slot = findSlot(participant.slotId);
@@ -38,30 +30,6 @@ function slotOf(participant: Participant): Slot {
   }
   return slot;
 }
-
-function hitPlacement(exit: Exit, nowMs: number, profile: MotionProfile): Placement {
-  const isHit = nowMs - exit.atMs >= profile.flightMs;
-  const after = progress(nowMs, exit.atMs + profile.flightMs, EXIT_ANIMATION_MS - profile.flightMs);
-  return {
-    alpha: 1 - after,
-    dx: 0,
-    dy: after * 28,
-    pose: { surprised: isHit, snow: Number(isHit) },
-  };
-}
-
-function timeoutPlacement(exit: Exit, nowMs: number): Placement {
-  const after = progress(nowMs, exit.atMs, EXIT_ANIMATION_MS);
-  return { alpha: 1 - after, dx: after * 16, dy: 0, pose: CALM };
-}
-
-const EXIT_PLACEMENT: Readonly<
-  Record<ExitReason, (exit: Exit, nowMs: number, profile: MotionProfile) => Placement>
-> = {
-  hit: hitPlacement,
-  misfire: hitPlacement,
-  timeout: timeoutPlacement,
-};
 
 function createLayer(width: number, height: number): HTMLCanvasElement {
   const layer = document.createElement("canvas");
@@ -81,18 +49,22 @@ function context2d(canvas: HTMLCanvasElement): Ctx {
 export class Renderer {
   readonly #canvas: HTMLCanvasElement;
   readonly #ctx: Ctx;
-  readonly #profile: MotionProfile;
+  #profile: MotionProfile = FULL_MOTION;
   #background: HTMLCanvasElement;
   #table: HTMLCanvasElement;
   #scale = 1;
   #misses: Miss[] = [];
 
-  constructor(canvas: HTMLCanvasElement, profile: MotionProfile) {
+  constructor(canvas: HTMLCanvasElement) {
     this.#canvas = canvas;
     this.#ctx = context2d(canvas);
-    this.#profile = profile;
     this.#background = createLayer(1, 1);
     this.#table = createLayer(1, 1);
+  }
+
+  /** 動きを減らす設定が変わったら，次のフレームから演出を切り替える． */
+  setMotion(profile: MotionProfile): void {
+    this.#profile = profile;
   }
 
   /** 表示の大きさと画素密度に合わせて作り直す．背景は解像度に依存させない． */
@@ -140,7 +112,7 @@ export class Renderer {
       this.#drawParticipant(participant, this.#appearPlacement(participant, game.timeMs));
     }
     for (const exit of game.exits.filter((item) => inRow(item.participant))) {
-      this.#drawParticipant(exit.participant, EXIT_PLACEMENT[exit.reason](exit, game.timeMs, this.#profile));
+      this.#drawParticipant(exit.participant, exitPlacement(exit, game.timeMs, this.#profile));
     }
   }
 

@@ -108,6 +108,47 @@ test("タブが隠れると一時停止する", async ({ page }) => {
   await expect(page.locator("#app")).toHaveAttribute("data-screen", "pause");
 });
 
+test("ほかのボタンに焦点があれば，Space はそのボタンを押す", async ({ page }) => {
+  await startPlaying(page);
+  const mute = page.getByRole("button", { name: "消音" });
+  await mute.focus();
+  await page.keyboard.press("Space");
+  await page.clock.runFor(100);
+  await expect(mute).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#kanpai-status")).toHaveText("長押しで乾杯");
+});
+
+test("止まった画面では描き続けず，遊んでいる間だけ描き続ける", async ({ page }) => {
+  await page.addInitScript(() => {
+    const counter = window as unknown as { frameRequests: number };
+    const request = window.requestAnimationFrame.bind(window);
+    counter.frameRequests = 0;
+    window.requestAnimationFrame = (callback) => {
+      counter.frameRequests += 1;
+      return request(callback);
+    };
+  });
+  await page.reload();
+  const frameRequests = () =>
+    page.evaluate(() => (window as unknown as { frameRequests: number }).frameRequests);
+
+  await page.clock.runFor(1_000);
+  const atTitle = await frameRequests();
+  await page.clock.runFor(1_000);
+  expect(await frameRequests()).toBe(atTitle);
+
+  await startPlaying(page);
+  const inPlay = await frameRequests();
+  await page.clock.runFor(1_000);
+  expect(await frameRequests()).toBeGreaterThan(inPlay);
+
+  await page.keyboard.press("Escape");
+  await page.clock.runFor(100);
+  const paused = await frameRequests();
+  await page.clock.runFor(1_000);
+  expect(await frameRequests()).toBe(paused);
+});
+
 test("数字キーで投げても動作が止まらない", async ({ page }) => {
   await startPlaying(page);
   await page.clock.runFor(1_500);

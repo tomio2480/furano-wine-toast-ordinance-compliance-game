@@ -28,3 +28,15 @@ const KEY_ACTIONS: ReadonlyMap<string, KeyAction> = new Map([
 export function keyAction(code: string): KeyAction | undefined {
   return KEY_ACTIONS.get(code);
 }
+
+/**
+ * 乾杯以外のボタンに焦点があるとき，Space はそのボタンを押す操作に譲る．
+ * 数字キーと一時停止のキーは，ボタンの標準の操作とぶつからないため譲らない．
+ */
+export function yieldsToFocusedButton(
+  action: KeyAction,
+  focused: { readonly tagName: string } | null,
+  isKanpaiButton: boolean,
+): boolean {
+  return action.kind === "kanpai" && focused?.tagName === "BUTTON" && !isKanpaiButton;
+}
