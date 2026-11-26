@@ -182,12 +182,23 @@ h2[tabindex="-1"]:focus {
   background: rgb(10 14 26 / 60%);
 }
 
-/* 消音中は塗りと取り消し線でも示す． */
+/*
+ * 消音中は塗りとチェックの印でも示す．取り消し線は「消音を取り消した」とも読めるため使わない．
+ * 印は読み上げず，状態は aria-pressed で伝える．
+ */
+.mute-check {
+  display: none;
+  margin-right: 0.3em;
+}
+
 .mute-button[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text);
-  text-decoration: line-through;
+}
+
+.mute-button[aria-pressed="true"] .mute-check {
+  display: inline;
 }
 
 /* メニュー系の画面 */
@@ -357,6 +368,29 @@ h2[tabindex="-1"]:focus {
 .share-status {
   min-height: 1.6em;
   margin: 0 0 0.6em;
+}
+
+/* コピーできなかったときに文面を手で写す欄． */
+.share-manual {
+  margin: 0 0 0.8em;
+}
+
+.share-manual label {
+  display: block;
+  margin-bottom: 0.2em;
+}
+
+.share-manual textarea {
+  width: 100%;
+  padding: 0.4em;
+  border: 2px solid var(--muted-text);
+  border-radius: 0.4em;
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* カウントダウン */

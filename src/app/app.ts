@@ -11,17 +11,19 @@ import {
   targetAt,
   type Point,
 } from "../core/targeting";
+import { HeldSpaceGuard } from "../input/held-space";
 import { HoldTracker } from "../input/hold";
 import { isPlainKey, keyAction, yieldsToFocusedButton, type KeyAction } from "../input/keys";
-import { watchMotionPreference } from "../render/motion";
+import { FULL_MOTION, watchMotionPreference, type MotionProfile } from "../render/motion";
 import { Renderer } from "../render/renderer";
 import { toStagePoint } from "../render/viewport";
 import { buildShareText, type ShareText } from "../share/share";
-import { getElements, setData, setText, type Elements } from "./dom";
+import { announce, getElements, setData, setText, type Elements } from "./dom";
 import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
 import { FrameLoop } from "./frame-loop";
 import { bindShareButtons, renderResult } from "./result-view";
 import { PlaySession, type Clock } from "./session";
+import { throwSound } from "./throw-sound";
 
 const KEY_SOURCE = "key";
 /** PointerEvent.button の主ボタン． */
@@ -47,7 +49,10 @@ class App {
   readonly #renderer: Renderer;
   readonly #loop: FrameLoop;
   readonly #hold = new HoldTracker();
+  readonly #heldSpace = new HeldSpaceGuard();
   readonly #sfx = new Sfx();
+  /** 雪玉が届くまでの時間．当たった音をこの分だけ遅らせ，絵の命中に合わせる． */
+  #impactDelayMs = FULL_MOTION.flightMs;
   #screen: Screen = "title";
   #countdownEndsAt = 0;
   #countdownShown = 0;
@@ -70,6 +75,7 @@ class App {
     },
     play: () => {
       this.#session.run();
+      this.#applyHold();
     },
     pause: () => {
       this.#stop();
@@ -169,6 +175,22 @@ class App {
     return this.#shareText;
   }
 
+  /** 動きを減らす設定が変わったら，演出と，当たった音の時機を合わせ直す． */
+  setMotion(profile: MotionProfile): void {
+    this.#renderer.setMotion(profile);
+    this.#impactDelayMs = profile.flightMs;
+  }
+
+  /**
+   * 遊んでいる間の利用者の操作で，止まった効果音を再開する．
+   * iOS では着信などで音が中断され，再開には利用者の操作が要るためである．
+   */
+  resumeSound(): void {
+    if (KEY_SCREENS.has(this.#screen)) {
+      this.#sfx.unlock();
+    }
+  }
+
   toggleMute(): void {
     this.#sfx.muted = !this.#sfx.muted;
     this.#ui.muteButton.setAttribute("aria-pressed", String(this.#sfx.muted));
@@ -184,11 +206,26 @@ class App {
 
   handleKeyDown(event: KeyboardEvent): void {
     const action = isPlainKey(event) ? keyAction(event.code) : undefined;
-    if (action === undefined || !KEY_SCREENS.has(this.#screen) || this.#yieldsToButton(action)) {
+    if (action === undefined) {
+      return;
+    }
+    if (!KEY_SCREENS.has(this.#screen)) {
+      this.#swallowHeldSpace(event, action);
+      return;
+    }
+    if (this.#yieldsToButton(action)) {
       return;
     }
     event.preventDefault();
+    this.resumeSound();
     this.#runKeyAction(action, event.repeat);
+  }
+
+  /** 乾杯に使ったまま押し続けている Space を，メニューのボタンに渡さない． */
+  #swallowHeldSpace(event: KeyboardEvent, action: KeyAction): void {
+    if (action.kind === "kanpai" && this.#heldSpace.swallowsKeyDown(event.repeat)) {
+      event.preventDefault();
+    }
   }
 
   #yieldsToButton(action: KeyAction): boolean {
@@ -207,19 +244,33 @@ class App {
   }
 
   handleKeyUp(event: KeyboardEvent): void {
-    if (keyAction(event.code)?.kind === "kanpai") {
-      this.release(KEY_SOURCE);
+    if (keyAction(event.code)?.kind !== "kanpai") {
+      return;
     }
+    if (this.#heldSpace.swallowsKeyUp()) {
+      event.preventDefault();
+    }
+    this.release(KEY_SOURCE);
   }
 
   press(source: string): void {
     this.#hold.press(source);
-    this.#session.setHeld(this.#hold.isHeld);
+    this.#applyHold();
   }
 
   release(source: string): void {
     this.#hold.release(source);
-    this.#session.setHeld(this.#hold.isHeld);
+    this.#applyHold();
+  }
+
+  /**
+   * 押下はプレイ中にだけ得点へ反映する．カウントダウン中の押下は覚えておき，
+   * 中立の表示のまま，プレイが始まった瞬間に反映する（先行入力）．
+   */
+  #applyHold(): void {
+    if (this.#screen === "play") {
+      this.#session.setHeld(this.#hold.isHeld);
+    }
   }
 
   releaseAll(): void {
@@ -230,6 +281,7 @@ class App {
   #runKeyAction(action: KeyAction, isRepeat: boolean): void {
     switch (action.kind) {
       case "kanpai":
+        this.#heldSpace.start();
         this.press(KEY_SOURCE);
         return;
       case "throw":
@@ -251,14 +303,17 @@ class App {
   }
 
   #throw(participantId: number | undefined, point: Point): void {
+    const before = this.#session.game;
     if (participantId === undefined) {
       this.#session.missAt(point);
-      this.#sfx.play("throw");
-      return;
+    } else {
+      this.#session.throwAt(participantId);
     }
-    const hitsBefore = this.#session.game.hits;
-    this.#session.throwAt(participantId);
-    this.#sfx.play(this.#session.game.hits > hitsBefore ? "hit" : "misfire");
+    const sound = throwSound(before, this.#session.game);
+    if (sound !== undefined) {
+      // 投げる音はすぐに，当たった音は雪玉が届く瞬間に鳴らす．
+      this.#sfx.play(sound, sound === "throw" ? 0 : this.#impactDelayMs);
+    }
   }
 
   #newGame(): void {
@@ -274,6 +329,7 @@ class App {
   #tickCountdown(): void {
     const remaining = this.#countdownEndsAt - this.#clock();
     if (remaining <= 0) {
+      setText(this.#ui.countdownLive, "");
       this.#sfx.play("go");
       this.dispatch("countdownDone");
       return;
@@ -282,6 +338,7 @@ class App {
     setText(this.#ui.countdown, String(shown));
     if (shown !== this.#countdownShown) {
       this.#sfx.play("count");
+      announce(this.#ui.countdownLive, String(shown));
       this.#countdownShown = shown;
     }
   }
@@ -392,6 +449,10 @@ function bindWindow(doc: Document, win: Window, app: App): void {
   doc.addEventListener("keyup", (event) => {
     app.handleKeyUp(event);
   });
+  // タッチでは pointerdown が利用者の操作に数えられないため，指を離したときに音を再開する．
+  doc.addEventListener("pointerup", () => {
+    app.resumeSound();
+  });
   win.addEventListener("blur", () => {
     app.releaseAll();
   });
@@ -415,7 +476,7 @@ export function startApp(doc: Document, win: Window): void {
   );
   const app = new App(ui, () => Math.round(win.performance.now()), renderer, loop);
   watchMotionPreference(win.matchMedia("(prefers-reduced-motion: reduce)"), (profile) => {
-    renderer.setMotion(profile);
+    app.setMotion(profile);
     loop.refresh();
   });
   bindButtons(ui, app);

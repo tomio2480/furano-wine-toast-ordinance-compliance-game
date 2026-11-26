@@ -63,7 +63,7 @@
               aria-pressed="false"
               data-screens="title countdown play pause result"
             >
-              消音
+              <span class="mute-check" aria-hidden="true">✓</span>消音
             </button>
           </div>
         </header>
@@ -108,7 +108,16 @@
         </section>
 
         <div class="countdown" data-screens="countdown">
-          <p id="countdown-number" aria-live="assertive">3</p>
+          <p id="countdown-number" aria-hidden="true">3</p>
+        </div>
+
+        <!--
+          読み上げ用のライブリージョン．画面の切り替えで隠すと，現れた直後の文が読み上げられないため，
+          常に表示したまま見た目だけ隠す．
+        -->
+        <div class="visually-hidden">
+          <p id="countdown-live" aria-live="assertive" aria-atomic="true"></p>
+          <p id="result-live" aria-live="polite" aria-atomic="true"></p>
         </div>
 
         <section class="panel" data-screens="pause" aria-labelledby="pause-heading">
@@ -147,6 +156,10 @@
             <button id="share-copy" type="button">文面をコピー</button>
           </div>
           <p id="share-status" class="share-status" role="status"></p>
+          <div id="share-manual" class="share-manual" hidden>
+            <label for="share-manual-text">投稿文（選んでコピーしてください）</label>
+            <textarea id="share-manual-text" readonly rows="4"></textarea>
+          </div>
           <div class="actions">
             <button id="retry-button" type="button" class="primary">もう一度</button>
             <button id="title-button" type="button">タイトルへ</button>

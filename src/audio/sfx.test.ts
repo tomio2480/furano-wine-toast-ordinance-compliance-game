@@ -1,17 +1,40 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sfx } from "./sfx";
 
-/** 効果音の合成に必要な分だけを持つ AudioContext の代役． */
+/** 効果音の合成に必要な分だけを持つ AudioContext の代役．作った音源を記録する． */
 function fakeContext() {
   const param = () => ({ setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() });
   const node = <T extends object>(extra: T) => ({ ...extra, connect: (target: unknown) => target });
+  const oscillators: { type: string; start: ReturnType<typeof vi.fn> }[] = [];
+  const noises: { start: ReturnType<typeof vi.fn> }[] = [];
+  const filters: { type: string }[] = [];
   return {
     currentTime: 0,
+    sampleRate: 48_000,
     destination: {},
+    oscillators,
+    noises,
+    filters,
     resume: vi.fn(() => Promise.resolve()),
     suspend: vi.fn(() => Promise.resolve()),
-    createOscillator: () => node({ type: "sine", frequency: param(), start: vi.fn(), stop: vi.fn() }),
+    close: vi.fn(() => Promise.resolve()),
+    createOscillator: () => {
+      const oscillator = node({ type: "sine", frequency: param(), start: vi.fn(), stop: vi.fn() });
+      oscillators.push(oscillator);
+      return oscillator;
+    },
     createGain: () => node({ gain: param() }),
+    createBuffer: (_channels: number, length: number) => ({ getChannelData: () => new Float32Array(length) }),
+    createBufferSource: () => {
+      const source = node({ buffer: null, start: vi.fn(), stop: vi.fn() });
+      noises.push(source);
+      return source;
+    },
+    createBiquadFilter: () => {
+      const filter = node({ type: "lowpass", frequency: param(), Q: param() });
+      filters.push(filter);
+      return filter;
+    },
   };
 }
 
@@ -20,6 +43,42 @@ function setup() {
   const create = vi.fn(() => context as unknown as AudioContext);
   return { context, create, sfx: new Sfx(create) };
 }
+
+describe("Sfx の音の組み立て", () => {
+  it("雪玉が当たった音は，帯域を絞った雑音を短く鳴らす乾いた音にする", () => {
+    const { context, sfx } = setup();
+    sfx.unlock();
+    sfx.play("hit");
+    expect(context.noises).toHaveLength(1);
+    expect(context.filters.map((filter) => filter.type)).toEqual(["bandpass"]);
+  });
+
+  it("誤射の音は，当たった音の後に低い警告音を続ける", () => {
+    const { context, sfx } = setup();
+    sfx.unlock();
+    sfx.play("misfire");
+    expect(context.noises).toHaveLength(1);
+    const warning = context.oscillators.find((oscillator) => oscillator.type === "sawtooth");
+    const warningStart = warning?.start.mock.calls[0]?.[0] as number;
+    expect(warningStart).toBeGreaterThan(context.noises[0]?.start.mock.calls[0]?.[0] as number);
+  });
+
+  it("遅れを指定すると，その分だけ遅らせて鳴らす", () => {
+    const { context, sfx } = setup();
+    sfx.unlock();
+    sfx.play("hit", 140);
+    expect(context.noises[0]?.start).toHaveBeenCalledWith(0.14);
+  });
+
+  it("雑音の元は AudioContext ごとに 1 度だけ作る", () => {
+    const { context, sfx } = setup();
+    const createBuffer = vi.spyOn(context, "createBuffer");
+    sfx.unlock();
+    sfx.play("hit");
+    sfx.play("hit");
+    expect(createBuffer).toHaveBeenCalledTimes(1);
+  });
+});
 
 /** 終了音は 0.3 秒後に始まる 0.32 秒の音で終わる．止めるのは，出力の遅れの分の余白をおいてから． */
 const END_SOUND_MS = 620;
@@ -77,6 +136,16 @@ describe("Sfx の一時停止", () => {
     expect(second.suspend).toHaveBeenCalledTimes(1);
   });
 
+  it("再開できなかった AudioContext は閉じてから捨てる", async () => {
+    const { context, create, sfx } = setup();
+    context.resume.mockImplementation(() => Promise.reject(new Error("interrupted")));
+    sfx.unlock();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(context.close).toHaveBeenCalledTimes(1);
+    sfx.unlock();
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it("AudioContext を作れない環境では，音を出さずに遊べる", () => {
     const sfx = new Sfx(() => {
       throw new Error("Web Audio is disabled");
@@ -107,6 +176,18 @@ describe("Sfx の一時停止", () => {
     await vi.advanceTimersByTimeAsync(SUSPEND_MARGIN_MS);
     sfx.unlock();
     expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("遅らせて鳴らす音は，遅れの分も鳴り終わるのを待ってから止める", () => {
+    const { context, sfx } = setup();
+    const delayMs = 1_000;
+    sfx.unlock();
+    sfx.play("hit", delayMs);
+    sfx.suspendWhenIdle();
+    vi.advanceTimersByTime(delayMs + SUSPEND_MARGIN_MS);
+    expect(context.suspend).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(END_SOUND_MS);
+    expect(context.suspend).toHaveBeenCalledTimes(1);
   });
 
   it("消音中は音を鳴らさないので，終了音の長さは待たない", () => {

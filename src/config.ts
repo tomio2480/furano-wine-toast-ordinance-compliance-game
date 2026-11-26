@@ -21,12 +21,18 @@ export interface ScoreUnit {
   readonly label: string;
 }
 
+/**
+ * 画面と投稿文の負の数に使う記号（U+2212）．ハイフンと混ぜず，正の数の「+」と幅をそろえる．
+ * 遊び方の HTML も同じ記号で書く．
+ */
+export const MINUS_SIGN = "−";
+
 function gain(digits: string): ScoreUnit {
   return { points: Number(digits), label: `+${digits}` };
 }
 
 function loss(digits: string): ScoreUnit {
-  return { points: -Number(digits), label: `-${digits}` };
+  return { points: -Number(digits), label: `${MINUS_SIGN}${digits}` };
 }
 
 /** 命中と誤射の得点． */

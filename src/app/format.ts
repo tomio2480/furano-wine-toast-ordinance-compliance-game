@@ -1,10 +1,11 @@
-import { KANPAI_UNIT_MS, KANPAI_UNIT_SCORE } from "../config";
+import { KANPAI_UNIT_MS, KANPAI_UNIT_SCORE, MINUS_SIGN } from "../config";
 import type { KanpaiMode } from "../core/score";
 
 const MS_PER_SECOND = 1_000;
 
+/** 桁区切りを入れる．負の数の記号は，toLocaleString が出すハイフンから MINUS_SIGN に替える． */
 export function formatScore(score: number): string {
-  return score.toLocaleString("ja-JP");
+  return score.toLocaleString("ja-JP").replace("-", MINUS_SIGN);
 }
 
 /** 加点の得点に符号を付ける．0 には付けない． */

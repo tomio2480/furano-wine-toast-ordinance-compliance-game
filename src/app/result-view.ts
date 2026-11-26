@@ -2,7 +2,7 @@ import type { GameResult } from "../core/game";
 import { titleFor } from "../core/titles";
 import { buildShareText, fullShareText, shareLinks, type ShareText } from "../share/share";
 import { breakdownRows, type BreakdownRow } from "./breakdown";
-import { setText, type Elements } from "./dom";
+import { announce, setText, type Elements } from "./dom";
 import { formatScore } from "./format";
 
 function rowElement(doc: Document, row: BreakdownRow): HTMLTableRowElement {
@@ -18,18 +18,26 @@ function rowElement(doc: Document, row: BreakdownRow): HTMLTableRowElement {
   return tr;
 }
 
-/** 結果画面を埋める．文字はすべて textContent で入れ，HTML として解釈させない． */
+/**
+ * 結果画面を埋める．文字はすべて textContent で入れ，HTML として解釈させない．
+ * 焦点は見出しへ移すため，得点と称号はライブリージョンで読み上げる．
+ */
 export function renderResult(ui: Elements, result: GameResult): ShareText {
   const text = buildShareText(result);
   const links = shareLinks(text);
   const doc = ui.app.ownerDocument;
-  setText(ui.resultScore, formatScore(result.score));
-  setText(ui.resultTitle, titleFor(result.score));
+  const score = formatScore(result.score);
+  const title = titleFor(result.score);
+  setText(ui.resultScore, score);
+  setText(ui.resultTitle, title);
   ui.breakdownBody.replaceChildren(...breakdownRows(result).map((row) => rowElement(doc, row)));
   ui.shareX.href = links.x;
   ui.shareBluesky.href = links.bluesky;
   ui.shareThreads.href = links.threads;
   setText(ui.shareStatus, "");
+  ui.shareManual.hidden = true;
+  ui.shareManualText.value = "";
+  announce(ui.resultLive, `得点は ${score} 点、称号は「${title}」です。`);
   return text;
 }
 
@@ -39,7 +47,7 @@ function isAbort(error: unknown): boolean {
 
 const SHARE_FAILED = "共有できませんでした。ほかの方法をお試しください。";
 const COPIED = "コピーしました。";
-const COPY_FAILED = "コピーできませんでした。お使いのブラウザの設定をご確認ください。";
+const COPY_FAILED = "コピーできませんでした。下の欄の文面を選んでコピーしてください。";
 
 /**
  * 共有シートを開く．開いている間はボタンを押せなくし，二重に開かせない．
@@ -54,12 +62,24 @@ function shareNatively(ui: Elements, nav: Navigator, text: ShareText): void {
         setText(ui.shareStatus, "");
       },
       (error: unknown) => {
-        setText(ui.shareStatus, isAbort(error) ? "" : SHARE_FAILED);
+        if (isAbort(error)) {
+          setText(ui.shareStatus, "");
+          return;
+        }
+        announce(ui.shareStatus, SHARE_FAILED);
       },
     )
     .finally(() => {
       ui.shareNative.disabled = false;
     });
+}
+
+/** コピーできなかった文面を欄に出し，選んだ状態にして手で写せるようにする． */
+function showManualCopy(ui: Elements, text: ShareText): void {
+  ui.shareManualText.value = fullShareText(text);
+  ui.shareManual.hidden = false;
+  ui.shareManualText.focus();
+  ui.shareManualText.select();
 }
 
 /**
@@ -68,11 +88,12 @@ function shareNatively(ui: Elements, nav: Navigator, text: ShareText): void {
  */
 function copyText(ui: Elements, nav: Navigator, text: ShareText): void {
   const showFailure = () => {
-    setText(ui.shareStatus, COPY_FAILED);
+    announce(ui.shareStatus, COPY_FAILED);
+    showManualCopy(ui, text);
   };
   try {
     void nav.clipboard.writeText(fullShareText(text)).then(() => {
-      setText(ui.shareStatus, COPIED);
+      announce(ui.shareStatus, COPIED);
     }, showFailure);
   } catch {
     showFailure();

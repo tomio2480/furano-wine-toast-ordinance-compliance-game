@@ -57,8 +57,8 @@ describe("exitPopup", () => {
     expect(exitPopup(exit("hit"))).toEqual({ text: "+076", tone: "good" });
   });
 
-  it("誤射は -38", () => {
-    expect(exitPopup(exit("misfire"))).toEqual({ text: "-38", tone: "bad" });
+  it("誤射は −38", () => {
+    expect(exitPopup(exit("misfire"))).toEqual({ text: "−38", tone: "bad" });
   });
 
   it("時間切れの退場には出さない", () => {

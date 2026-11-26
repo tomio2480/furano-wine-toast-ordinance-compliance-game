@@ -140,7 +140,7 @@ test("減点中の長い状態表示も，1 倍の文字なら 1 行に収まる
   await startWithKeyboard(page);
   const status = page.locator("#kanpai-status");
   const isOneLine = await status.evaluate((element) => {
-    element.textContent = "減点中 -0167 不適合者がいます";
+    element.textContent = "減点中 −0167 不適合者がいます";
     const lineHeight = Number.parseFloat(getComputedStyle(element).fontSize) * 1.6;
     return element.getBoundingClientRect().height < lineHeight * 1.5 + 8;
   });

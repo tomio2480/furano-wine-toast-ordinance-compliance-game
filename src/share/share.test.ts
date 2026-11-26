@@ -27,7 +27,7 @@ describe("buildShareText（案 B）", () => {
   });
 
   it("マイナスと桁区切りを表示する", () => {
-    expect(buildShareText(result({ score: -1_234 })).body).toContain("合計-1,234点");
+    expect(buildShareText(result({ score: -1_234 })).body).toContain("合計−1,234点");
   });
 
   it("乾杯秒数は小数第 1 位まで示す", () => {
