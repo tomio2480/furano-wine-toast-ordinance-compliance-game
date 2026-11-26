@@ -52,9 +52,9 @@ export interface TitleRank {
 
 /** 称号（要件書の表 11）．高い順に並べる．閾値は難易度の調整後に確定する． */
 export const TITLES: readonly TitleRank[] = [
-  { minScore: 10_000, title: "名誉乾杯奉行" },
-  { minScore: 6_000, title: "乾杯奉行" },
-  { minScore: 2_500, title: "乾杯係" },
+  { minScore: 100_000, title: "名誉乾杯奉行" },
+  { minScore: 70_000, title: "乾杯奉行" },
+  { minScore: 40_000, title: "乾杯係" },
   { minScore: 0, title: "乾杯見習い" },
   { minScore: Number.NEGATIVE_INFINITY, title: "雪まみれの幹事" },
 ];
