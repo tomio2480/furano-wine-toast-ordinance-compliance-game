@@ -13,7 +13,7 @@ const PAD = { left: 1, right: 2, top: 1, bottom: 2 } as const;
 const CHANNELS = 4;
 const ALPHA = 3;
 
-/** ウェブセーフカラーだけで塗る．上から下へ黄色から橙へ帯で変える． */
+/** ウェブセーフカラーだけで塗る．上から下へ，黄色から橙へ点描で移り変わらせる． */
 const LOGO_COLORS: GlyphColors = {
   fill: ["#ffff99", "#ffff33", "#ffcc00", "#ff9900", "#ff6600"],
   outline: "#330000",

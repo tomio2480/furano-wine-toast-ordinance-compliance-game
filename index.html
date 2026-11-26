@@ -176,6 +176,62 @@
         </div>
       </div>
     </main>
+    <!--
+      タイトルと結果のグラデーションを，ドット絵の点描（組織的ディザ）で描くフィルタ．
+      4 × 4 の Bayer 行列（1 マス 2px）の分だけ色をずらし，ウェブセーフカラー（0x33 刻み）に丸める．
+      元の透明度で切り抜き直し，文字の外へ色がはみ出さないようにする．
+    -->
+    <svg class="svg-defs" aria-hidden="true" focusable="false">
+      <filter
+        id="web-dither"
+        x="0"
+        y="0"
+        width="100%"
+        height="100%"
+        color-interpolation-filters="sRGB"
+        primitiveUnits="userSpaceOnUse"
+      >
+        <feFlood x="0" y="0" width="2" height="2" flood-color="#080808" result="b00" />
+        <feFlood x="2" y="0" width="2" height="2" flood-color="#888888" result="b10" />
+        <feFlood x="4" y="0" width="2" height="2" flood-color="#282828" result="b20" />
+        <feFlood x="6" y="0" width="2" height="2" flood-color="#a8a8a8" result="b30" />
+        <feFlood x="0" y="2" width="2" height="2" flood-color="#c8c8c8" result="b01" />
+        <feFlood x="2" y="2" width="2" height="2" flood-color="#484848" result="b11" />
+        <feFlood x="4" y="2" width="2" height="2" flood-color="#e8e8e8" result="b21" />
+        <feFlood x="6" y="2" width="2" height="2" flood-color="#686868" result="b31" />
+        <feFlood x="0" y="4" width="2" height="2" flood-color="#383838" result="b02" />
+        <feFlood x="2" y="4" width="2" height="2" flood-color="#b8b8b8" result="b12" />
+        <feFlood x="4" y="4" width="2" height="2" flood-color="#181818" result="b22" />
+        <feFlood x="6" y="4" width="2" height="2" flood-color="#989898" result="b32" />
+        <feFlood x="0" y="6" width="2" height="2" flood-color="#f8f8f8" result="b03" />
+        <feFlood x="2" y="6" width="2" height="2" flood-color="#787878" result="b13" />
+        <feFlood x="4" y="6" width="2" height="2" flood-color="#d8d8d8" result="b23" />
+        <feFlood x="6" y="6" width="2" height="2" flood-color="#585858" result="b33" />
+        <feMerge result="cell">
+          <feMergeNode in="b00" /><feMergeNode in="b10" /><feMergeNode in="b20" /><feMergeNode in="b30" />
+          <feMergeNode in="b01" /><feMergeNode in="b11" /><feMergeNode in="b21" /><feMergeNode in="b31" />
+          <feMergeNode in="b02" /><feMergeNode in="b12" /><feMergeNode in="b22" /><feMergeNode in="b32" />
+          <feMergeNode in="b03" /><feMergeNode in="b13" /><feMergeNode in="b23" /><feMergeNode in="b33" />
+        </feMerge>
+        <feTile in="cell" result="bayer" />
+        <feComposite
+          in="SourceGraphic"
+          in2="bayer"
+          operator="arithmetic"
+          k1="0"
+          k2="1"
+          k3="0.2"
+          k4="-0.1"
+          result="nudged"
+        />
+        <feComponentTransfer in="nudged" result="web-safe">
+          <feFuncR type="discrete" tableValues="0 .2 .2 .4 .4 .6 .6 .8 .8 1" />
+          <feFuncG type="discrete" tableValues="0 .2 .2 .4 .4 .6 .6 .8 .8 1" />
+          <feFuncB type="discrete" tableValues="0 .2 .2 .4 .4 .6 .6 .8 .8 1" />
+        </feComponentTransfer>
+        <feComposite in="web-safe" in2="SourceGraphic" operator="in" />
+      </filter>
+    </svg>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

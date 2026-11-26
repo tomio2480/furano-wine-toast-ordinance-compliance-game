@@ -4,7 +4,9 @@
 //
 // タイトル画面と同じく 1990〜2000 年代の画像に見せるため，次の順で描く．
 // 1. 半分の大きさ（600 × 315）で描く
-// 2. 色をウェブセーフカラー（各成分 0x33 刻み）に丸める．src/render/pixel-art.ts の toWebSafe と同じ計算
+// 2. 色をウェブセーフカラー（各成分 0x33 刻み）に丸める．丸める前に 4 × 4 の Bayer 行列の分だけ
+//    色をずらし，グラデーションをドット絵の点描（組織的ディザ）にする．
+//    src/render/pixel-art.ts の bayer と，index.html の SVG フィルタ #web-dither と同じ計算である
 // 3. なめらかにせず 2 倍に拡大し，ドットを見せる
 //
 // page.evaluate に渡す関数はブラウザの中で動くため，ブラウザの値を使う．
@@ -34,9 +36,21 @@ const png = await page.evaluate(
     const smallCtx = small.getContext("2d");
     smallCtx.drawImage(image, 0, 0, small.width, small.height);
     const pixels = smallCtx.getImageData(0, 0, small.width, small.height);
+    const bayer = [
+      [0, 8, 2, 10],
+      [12, 4, 14, 6],
+      [3, 11, 1, 9],
+      [15, 7, 13, 5],
+    ];
+    const step = 51;
     for (let offset = 0; offset < pixels.data.length; offset += 4) {
+      const index = offset / 4;
+      const x = index % small.width;
+      const y = Math.floor(index / small.width);
+      const nudge = ((bayer[y % 4][x % 4] + 0.5) / 16 - 0.5) * step;
       for (let channel = 0; channel < 3; channel++) {
-        pixels.data[offset + channel] = Math.round(pixels.data[offset + channel] / 51) * 51;
+        const value = pixels.data[offset + channel] + nudge;
+        pixels.data[offset + channel] = Math.min(255, Math.max(0, Math.round(value / step) * step));
       }
       pixels.data[offset + 3] = 255;
     }

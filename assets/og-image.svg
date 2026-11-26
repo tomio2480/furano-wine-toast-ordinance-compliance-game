@@ -1,19 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <!--
     OGP 用の画像．タイトル画面と同じ 1990〜2000 年代のウェブサイト風にする．
-    色はウェブセーフカラーとし，グラデーションは帯に分ける．
-    scripts/render-og-image.mjs が半分の大きさで描き，色を丸めてから 2 倍に拡大する．
+    色の端点はウェブセーフカラーとし，グラデーションはなめらかに描いておく．
+    scripts/render-og-image.mjs が半分の大きさで描き，点描（組織的ディザ）でウェブセーフカラーに丸め，
+    2 倍に拡大する．グラデーションはドット絵の点描になる．
   -->
   <defs>
-    <linearGradient id="logo-bands" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="logo-fill" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffff99"/>
-      <stop offset="0.25" stop-color="#ffff99"/>
-      <stop offset="0.25" stop-color="#ffcc00"/>
-      <stop offset="0.5" stop-color="#ffcc00"/>
-      <stop offset="0.5" stop-color="#ff9900"/>
-      <stop offset="0.75" stop-color="#ff9900"/>
-      <stop offset="0.75" stop-color="#ff6600"/>
+      <stop offset="0.4" stop-color="#ffcc00"/>
+      <stop offset="0.7" stop-color="#ff9900"/>
       <stop offset="1" stop-color="#ff6600"/>
+    </linearGradient>
+    <linearGradient id="banner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6699ff"/>
+      <stop offset="0.4" stop-color="#3333ff"/>
+      <stop offset="0.7" stop-color="#0033cc"/>
+      <stop offset="1" stop-color="#000066"/>
+    </linearGradient>
+    <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff0000"/>
+      <stop offset="0.2" stop-color="#ff9900"/>
+      <stop offset="0.4" stop-color="#ffff00"/>
+      <stop offset="0.6" stop-color="#33cc33"/>
+      <stop offset="0.8" stop-color="#0099ff"/>
+      <stop offset="1" stop-color="#6633cc"/>
+    </linearGradient>
+    <linearGradient id="start-button" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffff99"/>
+      <stop offset="0.45" stop-color="#ffcc33"/>
+      <stop offset="0.8" stop-color="#ff9900"/>
+      <stop offset="1" stop-color="#ff6600"/>
+    </linearGradient>
+    <linearGradient id="night-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#333366"/>
+      <stop offset="0.5" stop-color="#336699"/>
+      <stop offset="1" stop-color="#6699cc"/>
     </linearGradient>
     <clipPath id="picture"><rect x="772" y="262" width="356" height="206"/></clipPath>
   </defs>
@@ -21,25 +43,17 @@
   <rect width="1200" height="630" fill="#ffffff"/>
   <rect x="8" y="8" width="1184" height="614" fill="none" stroke="#ffcc00" stroke-width="16"/>
 
-  <!-- 題字の帯．青を 4 本の帯に分ける． -->
-  <rect x="16" y="16" width="1168" height="48" fill="#3366ff"/>
-  <rect x="16" y="64" width="1168" height="48" fill="#3333ff"/>
-  <rect x="16" y="112" width="1168" height="56" fill="#0033cc"/>
-  <rect x="16" y="168" width="1168" height="38" fill="#003399"/>
+  <!-- 題字の帯 -->
+  <rect x="16" y="16" width="1168" height="190" fill="url(#banner)"/>
 
   <g font-family="'MS PGothic', 'ＭＳ Ｐゴシック', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif">
     <g font-size="100" font-weight="900" text-anchor="middle">
       <text x="610" y="158" fill="#000000" stroke="#000000" stroke-width="12" stroke-linejoin="round">乾杯条例ガーディアン</text>
-      <text x="600" y="148" fill="url(#logo-bands)" stroke="#330000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">乾杯条例ガーディアン</text>
+      <text x="600" y="148" fill="url(#logo-fill)" stroke="#330000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">乾杯条例ガーディアン</text>
     </g>
 
     <!-- 虹色の区切り線 -->
-    <rect x="16" y="206" width="195" height="14" fill="#ff0000"/>
-    <rect x="211" y="206" width="195" height="14" fill="#ff9900"/>
-    <rect x="406" y="206" width="195" height="14" fill="#ffff00"/>
-    <rect x="601" y="206" width="195" height="14" fill="#33cc33"/>
-    <rect x="796" y="206" width="195" height="14" fill="#0099ff"/>
-    <rect x="991" y="206" width="193" height="14" fill="#6633cc"/>
+    <rect x="16" y="206" width="1168" height="14" fill="url(#rainbow)"/>
 
     <!-- 水色の見出しの帯 -->
     <rect x="56" y="256" width="640" height="64" fill="#00ffff"/>
@@ -55,9 +69,7 @@
     <text x="130" y="444" font-size="30" fill="#000000">全員がワインかぶどう果汁なら乾杯！</text>
 
     <!-- 立体的な「はじめる」ボタン -->
-    <rect x="216" y="482" width="260" height="22" fill="#ffff99"/>
-    <rect x="216" y="504" width="260" height="22" fill="#ffcc33"/>
-    <rect x="216" y="526" width="260" height="22" fill="#ff9900"/>
+    <rect x="216" y="482" width="260" height="66" fill="url(#start-button)"/>
     <polyline points="216,548 216,482 476,482" fill="none" stroke="#ffffff" stroke-width="4"/>
     <polyline points="476,482 476,548 216,548" fill="none" stroke="#666666" stroke-width="4"/>
     <text x="346" y="527" font-size="32" font-weight="700" text-anchor="middle" fill="#000000">はじめる</text>
@@ -66,9 +78,7 @@
 
     <!-- 雪の窓の絵．ページに貼った写真のように，凹んだ枠で囲む． -->
     <g clip-path="url(#picture)">
-      <rect x="772" y="262" width="356" height="52" fill="#333366"/>
-      <rect x="772" y="314" width="356" height="52" fill="#336699"/>
-      <rect x="772" y="366" width="356" height="102" fill="#6699cc"/>
+      <rect x="772" y="262" width="356" height="206" fill="url(#night-sky)"/>
       <path d="M772 410 Q 860 370 950 400 T 1128 392 V 468 H 772 Z" fill="#ccccff"/>
       <path d="M800 430 l 24 -64 l 24 64 z M880 438 l 20 -54 l 20 54 z M1060 434 l 24 -64 l 24 64 z" fill="#006633"/>
       <rect x="772" y="438" width="356" height="30" fill="#ffffff"/>

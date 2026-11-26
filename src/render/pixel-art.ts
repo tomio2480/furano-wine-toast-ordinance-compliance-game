@@ -48,12 +48,36 @@ export function shadow(
   });
 }
 
-/** 行に応じた塗りの色．上から下へ，palette を同じ幅の帯に分けて割り当てる． */
-export function bandColor(row: number, top: number, bottom: number, palette: readonly string[]): string {
-  const span = Math.max(1, bottom - top);
-  const ratio = Math.min(1, Math.max(0, (row - top) / span));
-  const index = Math.min(palette.length - 1, Math.floor(ratio * palette.length));
-  return palette[index] ?? "#000";
+/**
+ * 4 × 4 の Bayer 行列．点描（組織的ディザ）で，どのドットを次の色にするかの順番を決める．
+ * 隣り合うドットの値を離し，同じ色の点が固まらないようにしてある．
+ */
+const BAYER_4X4 = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+] as const;
+const BAYER_SIZE = 4;
+const BAYER_LEVELS = BAYER_SIZE * BAYER_SIZE;
+
+/** ドットの位置に対応する Bayer 行列の値（0〜15）．4 ドットごとに繰り返す． */
+export function bayer(x: number, y: number): number {
+  return BAYER_4X4[y % BAYER_SIZE]?.[x % BAYER_SIZE] ?? 0;
+}
+
+/**
+ * 上から下へ palette の色を移り変わらせるときの，ドットの色．
+ * 隣り合う 2 色の間は，Bayer 行列の順に点を置き換えて混ぜる（ドット絵のグラデーション）．
+ */
+export function ditherColor(x: number, y: number, row: number, height: number, palette: readonly string[]): string {
+  const last = palette.length - 1;
+  const ratio = Math.min(1, Math.max(0, row / Math.max(1, height - 1)));
+  const position = ratio * last;
+  const index = Math.min(last, Math.floor(position));
+  const threshold = (bayer(x, y) + 0.5) / BAYER_LEVELS;
+  const color = position - index > threshold ? palette[index + 1] : palette[index];
+  return color ?? palette[last] ?? "#000";
 }
 
 /** 「#rgb」か「#rrggbb」の色を成分に分ける． */
@@ -65,7 +89,7 @@ function rgb(color: string): readonly [number, number, number] {
 }
 
 export interface GlyphColors {
-  /** 塗りの帯の色．上から下の順． */
+  /** 塗りのグラデーションの色．上から下の順に，点描で移り変わらせる． */
   readonly fill: readonly string[];
   readonly outline: string;
   readonly shadow: string;
@@ -78,9 +102,11 @@ interface GlyphLayers {
 }
 
 /** ドットの色．塗り・縁・影の順に重ね，どれでもなければ透明（undefined）． */
-function dotColor(layers: GlyphLayers, index: number, row: number, height: number, colors: GlyphColors) {
+function dotColor(layers: GlyphLayers, index: number, width: number, height: number, colors: GlyphColors) {
   if (layers.mask[index] === true) {
-    return bandColor(row, 0, height - 1, colors.fill);
+    const x = index % width;
+    const y = Math.floor(index / width);
+    return ditherColor(x, y, y, height, colors.fill);
   }
   if (layers.edge[index] === true) {
     return colors.outline;
@@ -88,7 +114,7 @@ function dotColor(layers: GlyphLayers, index: number, row: number, height: numbe
   return layers.drop[index] === true ? colors.shadow : undefined;
 }
 
-/** 文字の形に，帯の塗り・縁・影を付けた RGBA の画素を作る．縁と影の外は透明のまま． */
+/** 文字の形に，点描のグラデーションの塗り・縁・影を付けた RGBA の画素を作る．縁と影の外は透明のまま． */
 export function paintGlyph(
   mask: readonly boolean[],
   width: number,
@@ -99,7 +125,7 @@ export function paintGlyph(
   const layers: GlyphLayers = { mask, edge, drop: shadow(mask, edge, width, height) };
   const pixels = new Uint8ClampedArray(width * height * CHANNELS);
   for (let index = 0; index < mask.length; index++) {
-    const color = dotColor(layers, index, Math.floor(index / width), height, colors);
+    const color = dotColor(layers, index, width, height, colors);
     if (color !== undefined) {
       pixels.set([...rgb(color), OPAQUE], index * CHANNELS);
     }

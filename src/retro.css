@@ -4,7 +4,8 @@
  * 立体的な灰色のボタン，罫線の表，アクセスカウンター風の得点で組む．
  *
  * 当時の表示に合わせ，次のように描く．実装は今の CSS のままとする．
- * - 色はウェブセーフカラー（各成分 0x33 刻み）を使う．グラデーションはなめらかにせず，帯に分ける
+ * - 色はウェブセーフカラー（各成分 0x33 刻み）を使う
+ * - グラデーションは，ドット絵の点描（組織的ディザ）で描く．index.html の SVG フィルタ #web-dither を通す
  * - 角は丸めず，影はぼかさない．半透明も使わない
  * - 動きは GIF のコマ送りのように 1 コマ 0.1〜0.15 秒で飛ばす
  *
@@ -37,13 +38,45 @@
     "MS PGothic", "ＭＳ Ｐゴシック", Osaka, "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
 }
 
-/* 題字の帯．パネルの余白を打ち消して枠いっぱいに広げ，青を帯に分けて塗る． */
+/* フィルタの定義を置く SVG．画面には出さない． */
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/*
+ * 点描のグラデーションの層．要素の後ろに敷き，フィルタは層だけに掛ける．
+ * 文字・縁・焦点枠にはフィルタを掛けず，そのまま読めるようにする．
+ */
+.panel.retro .retro-banner,
+.panel.retro button,
+.panel.retro .notes {
+  position: relative;
+  isolation: isolate;
+}
+
+.panel.retro .retro-banner::before,
+.panel.retro button::before,
+.panel.retro .notes::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  filter: url("#web-dither");
+  content: "";
+}
+
+/* 題字の帯．パネルの余白を打ち消して枠いっぱいに広げ，青を点描で移り変わらせる． */
 .panel.retro .retro-banner {
   margin: -5cqw -6cqw 0.6em;
   padding: 0.35em 0.4em 0.45em;
-  background: linear-gradient(#36f 0 25%, #33f 25% 50%, #03c 50% 80%, #039 80%);
   line-height: 1.25;
   text-align: center;
+}
+
+.panel.retro .retro-banner::before {
+  background: linear-gradient(#69f, #33f 40%, #03c 70%, #006);
 }
 
 .panel.retro h1.retro-banner {
@@ -55,17 +88,17 @@
 }
 
 /*
- * 飾り文字．黄から橙の帯で塗り，濃い茶の縁で囲み，ぼかさない影を落とす．
+ * 飾り文字．黄から橙へ点描で移り変わらせ，濃い茶の縁で囲み，ぼかさない影を落とす．
  * 文字は画像にせず HTML の文字のまま描く（1.4.5）．青い帯の上で比 3:1 以上を保つ．
  */
 .wordart {
   display: inline-block;
-  background: linear-gradient(#ff9 0 25%, #fc0 25% 50%, #f90 50% 75%, #f60 75%);
+  background: linear-gradient(#ff9, #fc0 40%, #f90 70%, #f60);
   background-clip: text;
   color: transparent;
   font-weight: 900;
   letter-spacing: 0.04em;
-  filter: drop-shadow(0.06em 0.08em 0 #000);
+  filter: url("#web-dither") drop-shadow(0.06em 0.08em 0 #000);
   -webkit-background-clip: text;
   -webkit-text-stroke: 0.04em #300;
 }
@@ -226,19 +259,16 @@
   content: "";
 }
 
-/* 注記の上は，6 色の帯の虹色の線で区切る． */
+/* 注記の上は，6 色が点描で移り変わる虹色の線で区切る． */
 .panel.retro .notes {
-  border-top: 4px solid;
-  border-image: linear-gradient(
-      90deg,
-      #f00 0 16.6%,
-      #f90 16.6% 33.3%,
-      #ff0 33.3% 50%,
-      #3c3 50% 66.6%,
-      #09f 66.6% 83.3%,
-      #63c 83.3%
-    )
-    1;
+  border-top: 0;
+  padding-top: calc(0.6em + 6px);
+}
+
+.panel.retro .notes::before {
+  bottom: auto;
+  height: 6px;
+  background: linear-gradient(90deg, #f00, #f90, #ff0, #3c3, #09f, #63c);
 }
 
 /*
@@ -249,13 +279,20 @@
   border: 2px solid;
   border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
   border-radius: 0;
-  background: linear-gradient(#fff 0 50%, var(--retro-face) 50%);
+  background: none;
   color: var(--retro-ink);
+}
+
+.panel.retro button::before {
+  background: linear-gradient(#fff, var(--retro-face) 70%, #999);
 }
 
 .panel.retro button.primary {
   padding-inline: 2em;
-  background: linear-gradient(#ff9 0 35%, #fc3 35% 70%, #f90 70%);
+}
+
+.panel.retro button.primary::before {
+  background: linear-gradient(#ff9, #fc3 45%, #f90 80%, #f60);
 }
 
 /* タイトルの「はじめる」は中央に置く． */
@@ -264,12 +301,12 @@
   margin-inline: auto;
 }
 
-.panel.retro button:hover {
-  background: linear-gradient(#ccf 0 50%, #99f 50%);
+.panel.retro button:hover::before {
+  background: linear-gradient(#ccf, #99f);
 }
 
-.panel.retro button.primary:hover {
-  background: linear-gradient(#fc6 0 50%, #f90 50%);
+.panel.retro button.primary:hover::before {
+  background: linear-gradient(#ffc, #fc6 40%, #f90);
 }
 
 .panel.retro button:active {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bandColor, binarize, outline, paintGlyph, shadow, toWebSafe } from "./pixel-art";
+import { bayer, binarize, ditherColor, outline, paintGlyph, shadow, toWebSafe } from "./pixel-art";
 
 /** 文字列の図から形を作る．「#」が形のドット． */
 function maskFrom(rows: readonly string[]): { mask: boolean[]; width: number; height: number } {
@@ -61,16 +61,39 @@ describe("shadow", () => {
   });
 });
 
-describe("bandColor", () => {
-  const palette = ["#ff9", "#fc0", "#f60"];
-
-  it("上から下へ，色を帯に分けて割り当てる", () => {
-    expect([0, 2, 4, 8].map((row) => bandColor(row, 0, 8, palette))).toEqual(["#ff9", "#ff9", "#fc0", "#f60"]);
+describe("bayer", () => {
+  it("4 × 4 のマスに 0〜15 の閾値を 1 つずつ置き，4 ドットごとに繰り返す", () => {
+    const block = [0, 1, 2, 3].flatMap((y) => [0, 1, 2, 3].map((x) => bayer(x, y)));
+    expect([...block].sort((a, b) => a - b)).toEqual([...Array(16).keys()]);
+    expect(bayer(5, 6)).toBe(bayer(1, 2));
   });
 
-  it("範囲の外の行は端の色にする", () => {
-    expect(bandColor(-3, 0, 8, palette)).toBe("#ff9");
-    expect(bandColor(20, 0, 8, palette)).toBe("#f60");
+  it("隣り合うドットの閾値は離す（同じ色が固まらないように）", () => {
+    expect(Math.abs(bayer(0, 0) - bayer(1, 0))).toBeGreaterThanOrEqual(4);
+    expect(Math.abs(bayer(0, 0) - bayer(0, 1))).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("ditherColor", () => {
+  const palette = ["#ff0", "#f00"];
+  const block = (row: number, height: number) =>
+    [0, 1, 2, 3].flatMap((y) => [0, 1, 2, 3].map((x) => ditherColor(x, y, row, height, palette)));
+
+  it("上端は最初の色，下端は最後の色だけで塗る", () => {
+    expect(new Set(block(0, 9))).toEqual(new Set(["#ff0"]));
+    expect(new Set(block(8, 9))).toEqual(new Set(["#f00"]));
+  });
+
+  it("中ほどでは，隣り合う 2 色を点描で半分ずつ混ぜる", () => {
+    const colors = block(4, 9);
+    expect(colors.filter((color) => color === "#ff0")).toHaveLength(8);
+    expect(colors.filter((color) => color === "#f00")).toHaveLength(8);
+  });
+
+  it("下へ進むほど，次の色の点が増える", () => {
+    const share = (row: number) => block(row, 9).filter((color) => color === "#f00").length;
+    expect(share(2)).toBeLessThan(share(4));
+    expect(share(4)).toBeLessThan(share(6));
   });
 });
 
