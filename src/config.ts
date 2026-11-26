@@ -10,15 +10,33 @@ export const COUNTDOWN_MS = 3_000;
 /** 乾杯の 1 単位の長さ． */
 export const KANPAI_UNIT_MS = 100;
 
-/** 命中と誤射の得点． */
-export const HIT_SCORE = 237;
-export const MISFIRE_SCORE = -237;
+/**
+ * 1 回あたりの得点．表記は値の元ネタに合わせ，0167 や 076 は先頭の 0 を残す．
+ * 計算には先頭の 0 を除いた数値を使う．
+ */
+export interface ScoreUnit {
+  /** 計算に使う値．減点は負の数． */
+  readonly points: number;
+  /** 画面に出す表記．符号と先頭の 0 を含む． */
+  readonly label: string;
+}
 
-/** 乾杯の 1 単位あたりの得点． */
+function gain(digits: string): ScoreUnit {
+  return { points: Number(digits), label: `+${digits}` };
+}
+
+function loss(digits: string): ScoreUnit {
+  return { points: -Number(digits), label: `-${digits}` };
+}
+
+/** 命中と誤射の得点． */
+export const HIT_SCORE = gain("076");
+export const MISFIRE_SCORE = loss("38");
+
+/** 乾杯の 1 単位あたりの得点．中立の間は増減しない． */
 export const KANPAI_UNIT_SCORE = {
-  plus: 38,
-  minus: -76,
-  neutral: 0,
+  plus: gain("237"),
+  minus: loss("0167"),
 } as const;
 
 /** 共有するゲームの URL．location.href は使わず，余計な文字列を混ぜない． */
@@ -34,9 +52,9 @@ export interface TitleRank {
 
 /** 称号（要件書の表 11）．高い順に並べる．閾値は難易度の調整後に確定する． */
 export const TITLES: readonly TitleRank[] = [
-  { minScore: 10_000, title: "名誉乾杯奉行" },
-  { minScore: 6_000, title: "乾杯奉行" },
-  { minScore: 2_500, title: "乾杯係" },
+  { minScore: 100_000, title: "名誉乾杯奉行" },
+  { minScore: 70_000, title: "乾杯奉行" },
+  { minScore: 40_000, title: "乾杯係" },
   { minScore: 0, title: "乾杯見習い" },
   { minScore: Number.NEGATIVE_INFINITY, title: "雪まみれの幹事" },
 ];

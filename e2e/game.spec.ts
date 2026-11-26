@@ -38,6 +38,14 @@ test("タイトル画面にゲーム名と開始ボタンがある", async ({ pa
   await expect(page.getByRole("button", { name: "はじめる" })).toBeVisible();
 });
 
+test("遊び方の得点は，元ネタどおり先頭の 0 を残した表記で示す", async ({ page }) => {
+  const howto = page.locator(".howto");
+  await expect(howto).toContainText("（+076 点）");
+  await expect(howto).toContainText("当てると −38 点");
+  await expect(howto).toContainText("0.1 秒ごとに +237 点");
+  await expect(howto).toContainText("いると −0167 点");
+});
+
 test("タイトル画面に axe の違反がない", async ({ page }) => {
   await expectNoAxeViolations(page);
 });
