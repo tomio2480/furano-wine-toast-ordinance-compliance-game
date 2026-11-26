@@ -1,0 +1,260 @@
+/*
+ * タイトルと結果の画面は，1990〜2000 年代のウェブサイト風の見た目にする．
+ * 白い地に青い題字の帯，水色の見出しの帯，茶色の矢印の箇条書き，青い下線のリンク，
+ * 立体的な灰色のボタン，罫線の表，アクセスカウンター風の得点で組む．
+ * 点滅や流れる文字などの動く飾りは使わない（WCAG 2.2.2，2.3.1）．
+ * 文字と背景の色の比は AA を保つ．文字の大きさは style.css と同じく em で決める．
+ */
+.panel.retro {
+  --retro-ink: #000;
+  --retro-sub-ink: #333;
+  --retro-paper: #fff;
+  --retro-frame: #fc0;
+  --retro-banner: #03c;
+  --retro-band: #0ff;
+  --retro-band-edge: #09c;
+  --retro-arrow: #930;
+  --retro-link: #00e;
+  --retro-visited: #551a8b;
+  --retro-face: #d4d0c8;
+  --retro-light-edge: #fff;
+  --retro-dark-edge: #808080;
+  --retro-cell: #ccf;
+  --retro-head: #069;
+  --retro-alert: #c00;
+
+  color-scheme: light;
+  border: 3px solid var(--retro-frame);
+  border-radius: 6px;
+  background: var(--retro-paper);
+  color: var(--retro-ink);
+  font-family:
+    "MS PGothic", "ＭＳ Ｐゴシック", Osaka, "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+}
+
+/* 題字の帯．パネルの余白を打ち消し，枠いっぱいに広げる． */
+.panel.retro .retro-banner {
+  margin: -5cqw -6cqw 0.6em;
+  padding: 0.35em 0.4em 0.45em;
+  background: linear-gradient(#35e, var(--retro-banner) 60%, #001f8a);
+  line-height: 1.25;
+  text-align: center;
+}
+
+.panel.retro h1.retro-banner {
+  font-size: 1.9em;
+}
+
+.panel.retro h2.retro-banner {
+  font-size: 1.7em;
+}
+
+/*
+ * 飾り文字の題字．橙のグラデーションを濃い茶の縁で囲み，影を落とす．
+ * 文字は画像にせず HTML の文字のまま描く（1.4.5）．青い帯の上で比 3:1 以上を保つ．
+ */
+.wordart {
+  display: inline-block;
+  background: linear-gradient(#fff7a8 10%, #ffb000 50%, #f06a00 90%);
+  background-clip: text;
+  color: transparent;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  filter: drop-shadow(0.06em 0.08em 0 rgb(0 0 0 / 55%));
+  -webkit-background-clip: text;
+  -webkit-text-stroke: 0.04em #3d1600;
+}
+
+/* 強制カラーモードでは，飾りを外してシステムの文字の色で読ませる． */
+@media (forced-colors: active) {
+  .wordart {
+    background: none;
+    color: CanvasText;
+    filter: none;
+    -webkit-text-stroke: 0;
+  }
+}
+
+.panel.retro .lead {
+  text-align: center;
+  font-weight: 700;
+}
+
+.panel.retro .notes-pointer,
+.panel.retro .notes {
+  color: var(--retro-sub-ink);
+}
+
+.panel.retro a,
+.panel.retro .notes a,
+.panel.retro .notes-pointer a {
+  color: var(--retro-link);
+}
+
+.panel.retro a:visited {
+  color: var(--retro-visited);
+}
+
+/* 見出しは水色の帯にし，左端に濃い色の縁を付ける． */
+.panel.retro h2:not(.retro-banner),
+.panel.retro h3 {
+  margin: 1em 0 0.4em;
+  padding: 0.15em 0.5em;
+  border-left: 0.4em solid var(--retro-band-edge);
+  background: var(--retro-band);
+  color: var(--retro-ink);
+  font-size: 1.15em;
+}
+
+/*
+ * 箇条書きの印は茶色の矢印にする．形は CSS で描き，読み上げさせない．
+ * list-style を外すと Safari がリストとして扱わなくなるため，HTML に role="list" を置く．
+ */
+.panel.retro .howto {
+  padding-left: 0;
+  list-style: none;
+}
+
+.panel.retro .howto li {
+  position: relative;
+  margin-bottom: 0.3em;
+  padding-left: 1.7em;
+}
+
+.panel.retro .howto li::before {
+  position: absolute;
+  top: 0.45em;
+  left: 0;
+  width: 1.3em;
+  height: 0.75em;
+  background: var(--retro-arrow);
+  clip-path: polygon(0 30%, 60% 30%, 60% 0, 100% 50%, 60% 100%, 60% 70%, 0 70%);
+  content: "";
+}
+
+/* 注記の上は虹色の線で区切る． */
+.panel.retro .notes {
+  border-top: 4px solid;
+  border-image: linear-gradient(90deg, #f00, #f90, #ff0, #3c3, #09f, #63c) 1;
+}
+
+/*
+ * ボタンは左上を明るく，右下を暗くした立体の灰色にする．押している間は凹ませる．
+ * マウスを載せると色が変わる「ロールオーバー」も当時のページに倣う．
+ */
+.panel.retro button {
+  border: 2px solid;
+  border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
+  border-radius: 0;
+  background: linear-gradient(#fff, var(--retro-face));
+  color: var(--retro-ink);
+  text-shadow: 0 1px 0 #fff;
+}
+
+.panel.retro button.primary {
+  padding-inline: 2em;
+  background: linear-gradient(#fff3b0, #ffc233 55%, #f90);
+}
+
+/* タイトルの「はじめる」は中央に置く． */
+.panel.retro > button.primary {
+  display: block;
+  margin-inline: auto;
+}
+
+.panel.retro button:hover {
+  background: linear-gradient(#e8f0ff, #9bf);
+}
+
+.panel.retro button.primary:hover {
+  background: linear-gradient(#ffe0a0, #f80);
+}
+
+.panel.retro button:active {
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+}
+
+/* 得点はアクセスカウンター風に，黒地に緑の数字で示す． */
+.panel.retro .result-score,
+.panel.retro .result-title {
+  text-align: center;
+}
+
+.panel.retro #result-score {
+  display: inline-block;
+  padding: 0.05em 0.3em;
+  border: 3px solid;
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  background: #000;
+  color: #3f6;
+  font-family: "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+}
+
+.panel.retro .result-title strong {
+  color: var(--retro-alert);
+}
+
+/* 称号の両側の星は飾りのため，対応するブラウザでは読み上げさせない． */
+.panel.retro .result-title strong::before,
+.panel.retro .result-title strong::after {
+  color: #c60;
+  content: "★";
+  content: "★" / "";
+}
+
+/* 内訳は，外枠を浮かせてセルを凹ませた罫線の表にする． */
+.panel.retro .breakdown {
+  border: 2px solid;
+  border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
+  border-collapse: separate;
+  border-spacing: 2px;
+  background: #f0f0f0;
+}
+
+.panel.retro .breakdown caption {
+  padding: 0.2em 0;
+}
+
+.panel.retro .breakdown th,
+.panel.retro .breakdown td {
+  border: 1px solid;
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  background: var(--retro-paper);
+  color: var(--retro-ink);
+}
+
+.panel.retro .breakdown thead th {
+  background: var(--retro-head);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.panel.retro .breakdown tbody th {
+  background: #eef;
+}
+
+/* 共有のリンクは，薄紫のセルに青い下線の文字を置く． */
+.panel.retro .share-link {
+  border: 1px solid #99c;
+  border-radius: 0;
+  background: var(--retro-cell);
+  color: var(--retro-link);
+  text-decoration: underline;
+}
+
+.panel.retro .share-link:hover {
+  background: #ffc;
+}
+
+.panel.retro .share-status {
+  color: var(--retro-alert);
+}
+
+.panel.retro .share-manual textarea {
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  border-radius: 0;
+  background: var(--retro-paper);
+  color: var(--retro-ink);
+}

@@ -46,6 +46,13 @@ test("遊び方の得点は，元ネタどおり先頭の 0 を残した表記�
   await expect(howto).toContainText("いると −0167 点");
 });
 
+test("遊び方は，印を描き替えてもリストとして読み上げる", async ({ page }) => {
+  const howto = page.getByRole("list").filter({ hasText: "制限時間は 60 秒です。" });
+  await expect(howto.getByRole("listitem")).toHaveCount(6);
+  // Chromium は list-style を外してもリストのままだが，WebKit は外すため role を明示する．
+  await expect(howto).toHaveAttribute("role", "list");
+});
+
 test("タイトル画面に axe の違反がない", async ({ page }) => {
   await expectNoAxeViolations(page);
 });
