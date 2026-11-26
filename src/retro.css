@@ -1,0 +1,446 @@
+/*
+ * タイトルと結果の画面は，1990〜2000 年代のウェブサイト風の見た目にする．
+ * 白い地に青い題字の帯，水色の見出しの帯，茶色の矢印の箇条書き，青い下線のリンク，
+ * 立体的な灰色のボタン，罫線の表，アクセスカウンター風の得点で組む．
+ *
+ * 当時の表示に合わせ，次のように描く．実装は今の CSS のままとする．
+ * - 色はウェブセーフカラー（各成分 0x33 刻み）を使う
+ * - グラデーションは，ドット絵の点描（組織的ディザ）で描く．index.html の SVG フィルタ #web-dither を通す
+ * - 角は丸めず，影はぼかさない．半透明も使わない
+ * - 動きは GIF のコマ送りのように 1 コマ 0.1〜0.15 秒で飛ばす
+ *
+ * 動きは画面を出してから 5 秒以内に止め，触れるともう一度流す（WCAG 2.2.2）．
+ * 動きを減らす設定では動かさない．文字と背景の色の比は AA を保つ．
+ */
+.panel.retro {
+  --retro-ink: #000;
+  --retro-sub-ink: #333;
+  --retro-paper: #fff;
+  --retro-frame: #fc0;
+  --retro-band: #0ff;
+  --retro-band-edge: #09c;
+  --retro-arrow: #930;
+  --retro-link: #00f;
+  --retro-visited: #639;
+  --retro-face: #ccc;
+  --retro-light-edge: #fff;
+  --retro-dark-edge: #666;
+  --retro-cell: #ccf;
+  --retro-head: #069;
+  --retro-alert: #c00;
+
+  color-scheme: light;
+  border: 3px solid var(--retro-frame);
+  border-radius: 0;
+  background: var(--retro-paper);
+  color: var(--retro-ink);
+  font-family:
+    "MS PGothic", "ＭＳ Ｐゴシック", Osaka, "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+}
+
+/* フィルタの定義を置く SVG．画面には出さない． */
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/*
+ * 点描のグラデーションの層．要素の後ろに敷き，フィルタは層だけに掛ける．
+ * 文字・縁・焦点枠にはフィルタを掛けず，そのまま読めるようにする．
+ */
+.panel.retro .retro-banner,
+.panel.retro button,
+.panel.retro .notes {
+  position: relative;
+  isolation: isolate;
+}
+
+.panel.retro .retro-banner::before,
+.panel.retro button::before,
+.panel.retro .notes::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  filter: url("#web-dither");
+  content: "";
+}
+
+/* 題字の帯．パネルの余白を打ち消して枠いっぱいに広げ，青を点描で移り変わらせる． */
+.panel.retro .retro-banner {
+  margin: -5cqw -6cqw 0.6em;
+  padding: 0.35em 0.4em 0.45em;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.panel.retro .retro-banner::before {
+  background: linear-gradient(#69f, #33f 40%, #03c 70%, #006);
+}
+
+.panel.retro h1.retro-banner {
+  font-size: 1.9em;
+}
+
+.panel.retro h2.retro-banner {
+  font-size: 1.7em;
+}
+
+/*
+ * 飾り文字．黄から橙へ点描で移り変わらせ，濃い茶の縁で囲み，ぼかさない影を落とす．
+ * 文字は画像にせず HTML の文字のまま描く（1.4.5）．青い帯の上で比 3:1 以上を保つ．
+ */
+.wordart {
+  display: inline-block;
+  background: linear-gradient(#ff9, #fc0 40%, #f90 70%, #f60);
+  background-clip: text;
+  color: transparent;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  filter: url("#web-dither") drop-shadow(0.06em 0.08em 0 #000);
+  -webkit-background-clip: text;
+  -webkit-text-stroke: 0.04em #300;
+}
+
+/*
+ * タイトルの題字はドット絵にする（pixel-logo.ts）．1 文字ずつの小さな画像を整数倍に拡大する．
+ * 1 ドットの大きさ（--art-px）は，帯の幅に収まる最大の整数 px とし，4px で止める．
+ * 元の文字は読み上げ用に残し，見た目だけ隠す．
+ */
+.retro-banner.has-pixel-logo .wordart {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pixel-logo {
+  --art-px: clamp(1px, round(down, calc(84cqw / var(--art-w)), 1px), 4px);
+
+  display: inline-flex;
+  align-items: flex-end;
+  vertical-align: middle;
+}
+
+/*
+ * 題字は 1 文字ずつ波打たせる．1 コマ 0.1 秒の 8 コマで 1 周し，6 周（4.8 秒）で止める．
+ * 文字ごとに 1 コマずつ遅らせ，波が右へ流れるようにする．
+ */
+.pixel-logo canvas {
+  width: calc(var(--cw) * var(--art-px));
+  height: calc(var(--ch) * var(--art-px));
+  image-rendering: pixelated;
+  animation: logo-wave 800ms step-end 6;
+  animation-delay: calc(var(--i) * -100ms);
+}
+
+/* 縁と影の余白は隣の文字に重ね，文字の間を詰める． */
+.pixel-logo canvas + canvas {
+  margin-left: calc(-1 * var(--overlap) * var(--art-px));
+}
+
+@keyframes logo-wave {
+  0% {
+    translate: 0 0;
+  }
+
+  12.5% {
+    translate: 0 calc(-1 * var(--art-px));
+  }
+
+  25% {
+    translate: 0 calc(-2 * var(--art-px));
+  }
+
+  37.5% {
+    translate: 0 calc(-1 * var(--art-px));
+  }
+
+  50% {
+    translate: 0 0;
+  }
+
+  62.5% {
+    translate: 0 var(--art-px);
+  }
+
+  75% {
+    translate: 0 calc(2 * var(--art-px));
+  }
+
+  87.5% {
+    translate: 0 var(--art-px);
+  }
+
+  100% {
+    translate: 0 0;
+  }
+}
+
+/* 強制カラーモードでは，画像と飾りを外し，システムの文字の色で題字を示す． */
+@media (forced-colors: active) {
+  .wordart {
+    background: none;
+    color: CanvasText;
+    filter: none;
+    -webkit-text-stroke: 0;
+  }
+
+  .retro-banner.has-pixel-logo .wordart {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .pixel-logo {
+    display: none;
+  }
+}
+
+.panel.retro .lead {
+  text-align: center;
+  font-weight: 700;
+}
+
+.panel.retro .notes-pointer,
+.panel.retro .notes {
+  color: var(--retro-sub-ink);
+}
+
+.panel.retro a,
+.panel.retro .notes a,
+.panel.retro .notes-pointer a {
+  color: var(--retro-link);
+}
+
+.panel.retro a:visited {
+  color: var(--retro-visited);
+}
+
+/* 見出しは水色の帯にし，左端に濃い色の縁を付ける． */
+.panel.retro h2:not(.retro-banner),
+.panel.retro h3 {
+  margin: 1em 0 0.4em;
+  padding: 0.15em 0.5em;
+  border-left: 0.4em solid var(--retro-band-edge);
+  background: var(--retro-band);
+  color: var(--retro-ink);
+  font-size: 1.15em;
+}
+
+/*
+ * 箇条書きの印は茶色の矢印にする．形は CSS で描き，読み上げさせない．
+ * list-style を外すと Safari がリストとして扱わなくなるため，HTML に role="list" を置く．
+ */
+.panel.retro .howto {
+  padding-left: 0;
+  list-style: none;
+}
+
+.panel.retro .howto li {
+  position: relative;
+  margin-bottom: 0.3em;
+  padding-left: 1.7em;
+}
+
+.panel.retro .howto li::before {
+  position: absolute;
+  top: 0.45em;
+  left: 0;
+  width: 1.3em;
+  height: 0.75em;
+  background: var(--retro-arrow);
+  clip-path: polygon(0 30%, 60% 30%, 60% 0, 100% 50%, 60% 100%, 60% 70%, 0 70%);
+  content: "";
+}
+
+/* 注記の上は，6 色が点描で移り変わる虹色の線で区切る． */
+.panel.retro .notes {
+  border-top: 0;
+  padding-top: calc(0.6em + 6px);
+}
+
+.panel.retro .notes::before {
+  bottom: auto;
+  height: 6px;
+  background: linear-gradient(90deg, #f00, #f90, #ff0, #3c3, #09f, #63c);
+}
+
+/*
+ * ボタンは左上を明るく，右下を暗くした立体の灰色にする．押している間は凹ませる．
+ * マウスを載せると色が変わる「ロールオーバー」も当時のページに倣う．
+ */
+.panel.retro button {
+  border: 2px solid;
+  border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
+  border-radius: 0;
+  background: none;
+  color: var(--retro-ink);
+}
+
+.panel.retro button::before {
+  background: linear-gradient(#fff, var(--retro-face) 70%, #999);
+}
+
+.panel.retro button.primary {
+  padding-inline: 2em;
+}
+
+.panel.retro button.primary::before {
+  background: linear-gradient(#ff9, #fc3 45%, #f90 80%, #f60);
+}
+
+/* タイトルの「はじめる」は中央に置く． */
+.panel.retro > button.primary {
+  display: block;
+  margin-inline: auto;
+}
+
+.panel.retro button:hover::before {
+  background: linear-gradient(#ccf, #99f);
+}
+
+.panel.retro button.primary:hover::before {
+  background: linear-gradient(#ffc, #fc6 40%, #f90);
+}
+
+.panel.retro button:active {
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+}
+
+/* 得点はアクセスカウンター風に，黒地に緑の数字で示す． */
+.panel.retro .result-score,
+.panel.retro .result-title {
+  text-align: center;
+}
+
+.panel.retro #result-score {
+  display: inline-block;
+  padding: 0.05em 0.3em;
+  border: 3px solid;
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  background: #000;
+  color: #3f6;
+  font-family: "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+}
+
+/*
+ * 称号は黒地の電光掲示板風にし，文字の色を虹色に送る．1 コマ 0.15 秒の 6 色で 1 周し，
+ * 5 周（4.5 秒）で止める．どの色も黒地との比は 4.5:1 以上である．
+ */
+.panel.retro .result-title strong {
+  display: inline-block;
+  padding: 0.1em 0.5em;
+  border: 3px solid;
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  background: #000;
+  color: #ff0;
+  animation: title-rainbow 900ms step-end 5;
+}
+
+@keyframes title-rainbow {
+  0% {
+    color: #f00;
+  }
+
+  16.66% {
+    color: #f90;
+  }
+
+  33.33% {
+    color: #ff0;
+  }
+
+  50% {
+    color: #0f0;
+  }
+
+  66.66% {
+    color: #0cf;
+  }
+
+  83.33% {
+    color: #f0f;
+  }
+
+  100% {
+    color: #ff0;
+  }
+}
+
+/* 称号の両側の星は飾りのため，対応するブラウザでは読み上げさせない． */
+.panel.retro .result-title strong::before,
+.panel.retro .result-title strong::after {
+  content: "★";
+  content: "★" / "";
+}
+
+/* 動きを減らす設定では，題字も称号も動かさない． */
+@media (prefers-reduced-motion: reduce) {
+  .pixel-logo canvas,
+  .panel.retro .result-title strong {
+    animation: none;
+  }
+}
+
+/* 内訳は，外枠を浮かせてセルを凹ませた罫線の表にする． */
+.panel.retro .breakdown {
+  border: 2px solid;
+  border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
+  border-collapse: separate;
+  border-spacing: 2px;
+  background: var(--retro-face);
+}
+
+.panel.retro .breakdown caption {
+  padding: 0.2em 0;
+}
+
+.panel.retro .breakdown th,
+.panel.retro .breakdown td {
+  border: 1px solid;
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  background: var(--retro-paper);
+  color: var(--retro-ink);
+}
+
+.panel.retro .breakdown thead th {
+  background: var(--retro-head);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.panel.retro .breakdown tbody th {
+  background: #ffc;
+}
+
+/* 共有のリンクは，薄紫のセルに青い下線の文字を置く． */
+.panel.retro .share-link {
+  border: 1px solid #99c;
+  border-radius: 0;
+  background: var(--retro-cell);
+  color: var(--retro-link);
+  text-decoration: underline;
+}
+
+.panel.retro .share-link:hover {
+  background: #ffc;
+}
+
+.panel.retro .share-status {
+  color: var(--retro-alert);
+}
+
+.panel.retro .share-manual textarea {
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  border-radius: 0;
+  background: var(--retro-paper);
+  color: var(--retro-ink);
+}

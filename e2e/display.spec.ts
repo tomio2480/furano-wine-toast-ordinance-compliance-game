@@ -228,6 +228,139 @@ test.describe("大きな画面", () => {
   });
 });
 
+interface Clip {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+interface Dots {
+  /** 現れた色（"r,g,b"）． */
+  readonly colors: string[];
+  /** 調べた線の上で，隣のドットと色が変わる回数． */
+  readonly changes: number;
+  /** 調べた線の上で，同じ色の並びが 2 つ前の並びの色に戻る回数．点描では 2 色が交互に並ぶ． */
+  readonly returns: number;
+}
+
+/** グラデーションの向きに沿って調べる線．横のグラデーションは真ん中の行，縦は左端近くの列とする． */
+type Line = "row" | "column";
+
+/** 画面の一部を撮り，ドットの色を調べる．本体のページは CSP で data: の画像を拒むため，空のページで読む． */
+async function dotsIn(page: Page, clip: Clip, line: Line): Promise<Dots> {
+  const png = await page.screenshot({ clip });
+  const reader = await page.context().newPage();
+  const dots = await reader.evaluate(async ({ base64, line }) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${base64}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) {
+      throw new Error("Canvas 2D を使えません");
+    }
+    ctx.drawImage(image, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const at = (index: number) => `${String(data[index])},${String(data[index + 1])},${String(data[index + 2])}`;
+    const colors = new Set<string>();
+    for (let index = 0; index < data.length; index += 4) {
+      colors.add(at(index));
+    }
+    const middleRow = Math.floor(canvas.height / 2);
+    const nearLeft = Math.min(4, canvas.width - 1);
+    const length = line === "row" ? canvas.width : canvas.height;
+    const offsetAt = (step: number) =>
+      line === "row" ? (middleRow * canvas.width + step) * 4 : (step * canvas.width + nearLeft) * 4;
+    const runs: string[] = [];
+    for (let step = 0; step < length; step++) {
+      if (runs.at(-1) !== at(offsetAt(step))) {
+        runs.push(at(offsetAt(step)));
+      }
+    }
+    const returns = runs.filter((color, index) => index >= 2 && color === runs[index - 2]).length;
+    return { colors: [...colors], changes: runs.length - 1, returns };
+  }, { base64: png.toString("base64"), line });
+  await reader.close();
+  return dots;
+}
+
+function isWebSafe(color: string): boolean {
+  return color.split(",").every((channel) => Number(channel) % 51 === 0);
+}
+
+test.describe("ドット絵のグラデーション", () => {
+  /** 右端はパネルのスクロールバーに重なりうるため，左右を少し内側にして撮る． */
+  async function insetClip(target: Locator, height?: number): Promise<Clip> {
+    await target.scrollIntoViewIfNeeded();
+    const box = await boxOf(target);
+    return { x: box.x + 4, y: box.y, width: box.width - 28, height: height ?? box.height };
+  }
+
+  /**
+   * 色がウェブセーフカラーだけか，2 色が交互に並ぶ点描かは，拡大率が整数の画面でだけ確かめる．
+   * 整数でない画面（携帯端末の設定は 2.625 倍）では，合成のときに隣のドットと色が混ざるためである．
+   * どの画面でも，色が帯のように数回しか変わらないことはないと確かめる．
+   */
+  function expectDithered(dots: Dots, minimumChanges: number): void {
+    expect(dots.changes).toBeGreaterThan(minimumChanges);
+    const scale = test.info().project.use.deviceScaleFactor ?? 1;
+    if (Number.isInteger(scale)) {
+      expect(dots.colors.filter((color) => !isWebSafe(color))).toEqual([]);
+      expect(dots.returns).toBeGreaterThan(minimumChanges / 2);
+    }
+  }
+
+  test("題字の帯は，ウェブセーフカラーの点描で青を移り変わらせる", async ({ page }) => {
+    expectDithered(await dotsIn(page, await insetClip(page.locator("#title-heading")), "column"), 8);
+  });
+
+  test("虹色の区切り線は，帯ではなく点描で色を移り変わらせる", async ({ page }) => {
+    const dots = await dotsIn(page, await insetClip(page.locator(".panel.retro .notes"), 6), "row");
+    expectDithered(dots, 20);
+    expect(dots.colors.length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+test.describe("題字の GIF 風の動き", () => {
+  const glyphs = (page: Page) => page.locator("#title-heading .pixel-logo canvas");
+  const runningAnimations = (page: Page) =>
+    glyphs(page).evaluateAll((elements) => elements.reduce((sum, element) => sum + element.getAnimations().length, 0));
+
+  test("題字はドット絵で見せ，読み上げには元の文字を使う", async ({ page }) => {
+    await expect(page.getByRole("heading", { level: 1, name: "乾杯条例ガーディアン" })).toBeVisible();
+    await expect(page.locator("#title-heading .pixel-logo")).toHaveAttribute("aria-hidden", "true");
+    await expect(glyphs(page)).toHaveCount(10);
+    const rendering = await glyphs(page).first().evaluate((element) => getComputedStyle(element).imageRendering);
+    expect(rendering).toBe("pixelated");
+  });
+
+  test("題字の動きは 5 秒以内に止まり，マウスを載せると最初から流れる（WCAG 2.2.2）", async ({ page }) => {
+    const endTimes = await glyphs(page).evaluateAll((elements) =>
+      elements.flatMap((element) =>
+        element.getAnimations().map((animation) => Number(animation.effect?.getComputedTiming().endTime)),
+      ),
+    );
+    expect(endTimes).toHaveLength(10);
+    expect(Math.max(...endTimes)).toBeLessThanOrEqual(5_000);
+    await glyphs(page).evaluateAll((elements) => {
+      for (const animation of elements.flatMap((element) => element.getAnimations())) {
+        animation.finish();
+      }
+    });
+    expect(await runningAnimations(page)).toBe(0);
+    await page.locator("#title-heading").hover();
+    expect(await runningAnimations(page)).toBe(10);
+  });
+
+  test("動きを減らす設定では，題字を動かさない", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    expect(await runningAnimations(page)).toBe(0);
+  });
+});
+
 test("OS の文字の大きさに合わせるよう宣言する", async ({ page }) => {
   await expect(page.locator('meta[name="text-scale"]')).toHaveAttribute("content", "scale");
 });

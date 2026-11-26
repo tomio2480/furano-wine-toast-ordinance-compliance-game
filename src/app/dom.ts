@@ -21,6 +21,7 @@ export function getElements(doc: Document) {
     kanpaiButton: byId(doc, "kanpai-button", HTMLButtonElement),
     pauseButton: byId(doc, "pause-button", HTMLButtonElement),
     muteButton: byId(doc, "mute-button", HTMLButtonElement),
+    titleHeading: byId(doc, "title-heading", HTMLHeadingElement),
     startButton: byId(doc, "start-button", HTMLButtonElement),
     resumeButton: byId(doc, "resume-button", HTMLButtonElement),
     retryButton: byId(doc, "retry-button", HTMLButtonElement),

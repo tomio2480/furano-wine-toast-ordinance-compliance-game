@@ -21,6 +21,7 @@ import { buildShareText, type ShareText } from "../share/share";
 import { announce, clearAnnouncement, getElements, setData, setText, type Elements } from "./dom";
 import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
 import { FrameLoop } from "./frame-loop";
+import { mountPixelLogo, replayOnPointer } from "./pixel-logo";
 import { announceResult, bindShareButtons, renderResult } from "./result-view";
 import { PlaySession, type Clock } from "./session";
 import { throwSound } from "./throw-sound";
@@ -475,6 +476,16 @@ function bindWindow(doc: Document, win: Window, app: App): void {
   });
 }
 
+/**
+ * タイトルの題字をドット絵にし，題字と称号の GIF 風の動きを，触れたときにもう一度流せるようにする．
+ * 動きは画面を出すたびに CSS で約 5 秒だけ流れて止まる（WCAG 2.2.2）．
+ */
+function bindRetroMotion(ui: Elements): void {
+  mountPixelLogo(ui.titleHeading);
+  replayOnPointer(ui.titleHeading, () => ui.titleHeading.querySelectorAll("canvas"));
+  replayOnPointer(ui.resultTitle.parentElement ?? ui.resultTitle, () => [ui.resultTitle]);
+}
+
 export function startApp(doc: Document, win: Window): void {
   const ui = getElements(doc);
   const renderer = new Renderer(ui.canvas);
@@ -494,6 +505,7 @@ export function startApp(doc: Document, win: Window): void {
   bindStage(ui, app);
   bindWindow(doc, win, app);
   bindShareButtons(ui, win.navigator, () => app.shareText);
+  bindRetroMotion(ui);
   const resize = () => {
     renderer.resize(ui.stage.clientWidth, win.devicePixelRatio);
     ui.stage.style.setProperty("--text-boost", String(textBoost(ui.stage.clientWidth)));

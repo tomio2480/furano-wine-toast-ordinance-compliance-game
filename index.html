@@ -28,12 +28,12 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="雪の降る窓と銅色の照明がある会場に「乾杯条例ガーディアン」の題字と「非公式のファンゲーム」の表示。ワイングラスと雪玉の絵。"
+      content="昔のウェブサイト風の画面。青い帯に橙の飾り文字で「乾杯条例ガーディアン」の題字、「まずは、ふらのワインで乾杯！」の見出しと遊び方、雪の窓とワイングラスと雪玉の絵、虹色の文字の称号、「非公式のファンゲーム」の表示。"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:image:alt"
-      content="雪の降る窓と銅色の照明がある会場に「乾杯条例ガーディアン」の題字と「非公式のファンゲーム」の表示。ワイングラスと雪玉の絵。"
+      content="昔のウェブサイト風の画面。青い帯に橙の飾り文字で「乾杯条例ガーディアン」の題字、「まずは、ふらのワインで乾杯！」の見出しと遊び方、雪の窓とワイングラスと雪玉の絵、虹色の文字の称号、「非公式のファンゲーム」の表示。"
     />
   </head>
   <body>
@@ -68,12 +68,12 @@
           </div>
         </header>
 
-        <section class="panel" data-screens="title" aria-labelledby="title-heading">
-          <h1 id="title-heading">乾杯条例ガーディアン</h1>
+        <section class="panel retro" data-screens="title" aria-labelledby="title-heading">
+          <h1 id="title-heading" class="retro-banner"><span class="wordart">乾杯条例ガーディアン</span></h1>
           <p class="lead">冬の富良野の懇親会。まずは、ふらのワインで乾杯！</p>
           <p class="notes-pointer">非公式のファンゲームです。<a href="#notes-heading">注記</a>を下に載せています。</p>
           <h2>遊び方</h2>
-          <ul class="howto">
+          <ul class="howto" role="list">
             <li>ふらのワインとふらのぶどう果汁<em>以外</em>を持つ人に雪玉を当てて退場させます（+076 点）。</li>
             <li>ワインやぶどう果汁を持つ人に当てると −38 点です。</li>
             <li>全員がワインかぶどう果汁のとき、乾杯を長押しすると 0.1 秒ごとに +237 点。それ以外の人がいると −0167 点です。</li>
@@ -89,6 +89,7 @@
             </p>
             <p>実際の条例は努力義務で、罰則はありません。飲み物は自由に選んでください。</p>
             <p>20歳未満の飲酒は法律で禁止されています。ぶどう果汁でも乾杯できます。</p>
+            <p>雪合戦以外で、雪玉を人にぶつけないでください。</p>
             <p>
               条例の原文:
               <a
@@ -127,8 +128,8 @@
           <button id="resume-button" type="button" class="primary">再開する</button>
         </section>
 
-        <section class="panel" data-screens="result" aria-labelledby="result-heading">
-          <h2 id="result-heading" tabindex="-1">結果</h2>
+        <section class="panel retro" data-screens="result" aria-labelledby="result-heading">
+          <h2 id="result-heading" class="retro-banner" tabindex="-1"><span class="wordart">結果</span></h2>
           <p class="result-score"><span id="result-score">0</span> 点</p>
           <p class="result-title">称号 <strong id="result-title">乾杯見習い</strong></p>
           <table class="breakdown">
@@ -175,6 +176,62 @@
         </div>
       </div>
     </main>
+    <!--
+      タイトルと結果のグラデーションを，ドット絵の点描（組織的ディザ）で描くフィルタ．
+      4 × 4 の Bayer 行列（1 マス 2px）の分だけ色をずらし，ウェブセーフカラー（0x33 刻み）に丸める．
+      元の透明度で切り抜き直し，文字の外へ色がはみ出さないようにする．
+    -->
+    <svg class="svg-defs" aria-hidden="true" focusable="false">
+      <filter
+        id="web-dither"
+        x="0"
+        y="0"
+        width="100%"
+        height="100%"
+        color-interpolation-filters="sRGB"
+        primitiveUnits="userSpaceOnUse"
+      >
+        <feFlood x="0" y="0" width="2" height="2" flood-color="#080808" result="b00" />
+        <feFlood x="2" y="0" width="2" height="2" flood-color="#888888" result="b10" />
+        <feFlood x="4" y="0" width="2" height="2" flood-color="#282828" result="b20" />
+        <feFlood x="6" y="0" width="2" height="2" flood-color="#a8a8a8" result="b30" />
+        <feFlood x="0" y="2" width="2" height="2" flood-color="#c8c8c8" result="b01" />
+        <feFlood x="2" y="2" width="2" height="2" flood-color="#484848" result="b11" />
+        <feFlood x="4" y="2" width="2" height="2" flood-color="#e8e8e8" result="b21" />
+        <feFlood x="6" y="2" width="2" height="2" flood-color="#686868" result="b31" />
+        <feFlood x="0" y="4" width="2" height="2" flood-color="#383838" result="b02" />
+        <feFlood x="2" y="4" width="2" height="2" flood-color="#b8b8b8" result="b12" />
+        <feFlood x="4" y="4" width="2" height="2" flood-color="#181818" result="b22" />
+        <feFlood x="6" y="4" width="2" height="2" flood-color="#989898" result="b32" />
+        <feFlood x="0" y="6" width="2" height="2" flood-color="#f8f8f8" result="b03" />
+        <feFlood x="2" y="6" width="2" height="2" flood-color="#787878" result="b13" />
+        <feFlood x="4" y="6" width="2" height="2" flood-color="#d8d8d8" result="b23" />
+        <feFlood x="6" y="6" width="2" height="2" flood-color="#585858" result="b33" />
+        <feMerge result="cell">
+          <feMergeNode in="b00" /><feMergeNode in="b10" /><feMergeNode in="b20" /><feMergeNode in="b30" />
+          <feMergeNode in="b01" /><feMergeNode in="b11" /><feMergeNode in="b21" /><feMergeNode in="b31" />
+          <feMergeNode in="b02" /><feMergeNode in="b12" /><feMergeNode in="b22" /><feMergeNode in="b32" />
+          <feMergeNode in="b03" /><feMergeNode in="b13" /><feMergeNode in="b23" /><feMergeNode in="b33" />
+        </feMerge>
+        <feTile in="cell" result="bayer" />
+        <feComposite
+          in="SourceGraphic"
+          in2="bayer"
+          operator="arithmetic"
+          k1="0"
+          k2="1"
+          k3="0.2"
+          k4="-0.1"
+          result="nudged"
+        />
+        <feComponentTransfer in="nudged" result="web-safe">
+          <feFuncR type="discrete" tableValues="0 .2 .2 .4 .4 .6 .6 .8 .8 1" />
+          <feFuncG type="discrete" tableValues="0 .2 .2 .4 .4 .6 .6 .8 .8 1" />
+          <feFuncB type="discrete" tableValues="0 .2 .2 .4 .4 .6 .6 .8 .8 1" />
+        </feComponentTransfer>
+        <feComposite in="web-safe" in2="SourceGraphic" operator="in" />
+      </filter>
+    </svg>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
