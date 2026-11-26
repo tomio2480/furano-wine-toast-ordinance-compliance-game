@@ -16,7 +16,7 @@ import { HoldTracker } from "../input/hold";
 import { isPlainKey, keyAction, yieldsToFocusedButton, type KeyAction } from "../input/keys";
 import { FULL_MOTION, watchMotionPreference, type MotionProfile } from "../render/motion";
 import { Renderer } from "../render/renderer";
-import { toStagePoint } from "../render/viewport";
+import { textBoost, toStagePoint, watchPixelRatio } from "../render/viewport";
 import { buildShareText, type ShareText } from "../share/share";
 import { announce, getElements, setData, setText, type Elements } from "./dom";
 import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
@@ -486,8 +486,10 @@ export function startApp(doc: Document, win: Window): void {
   bindShareButtons(ui, win.navigator, () => app.shareText);
   const resize = () => {
     renderer.resize(ui.stage.clientWidth, win.devicePixelRatio);
+    ui.stage.style.setProperty("--text-boost", String(textBoost(ui.stage.clientWidth)));
     loop.refresh();
   };
   new ResizeObserver(resize).observe(ui.stage);
+  watchPixelRatio(win, resize);
   resize();
 }
