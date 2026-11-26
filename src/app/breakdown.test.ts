@@ -17,8 +17,8 @@ describe("breakdownRows（結果画面の内訳）", () => {
     expect(rows).toEqual([
       { label: "命中", detail: "3 人", points: "+228" },
       { label: "乾杯の加点", detail: "3.0 秒", points: "+7,110" },
-      { label: "乾杯の減点", detail: "3.2 秒", points: "-5,344" },
-      { label: "誤射", detail: "2 回", points: "-76" },
+      { label: "乾杯の減点", detail: "3.2 秒", points: "−5,344" },
+      { label: "誤射", detail: "2 回", points: "−76" },
     ]);
   });
 

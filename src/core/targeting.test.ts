@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SLOTS, type Slot } from "../config";
+import { FIGURE, NARROWEST_STAGE_CSS_PX, SLOTS, STAGE, TABLE, type Slot } from "../config";
 import type { Participant } from "./game";
 import { findSlot, hitboxCenter, participantInSlot, targetAt } from "./targeting";
 
@@ -7,12 +7,41 @@ function participant(id: number, slotId: number): Participant {
   return { id, slotId, drink: "beer", appearedAtMs: 0, leaveAtMs: 1_000 };
 }
 
-const MIN_TARGET_PX = 44;
+const MIN_TARGET_CSS_PX = 44;
+const bySlot = SLOTS.map((slot) => [slot.id, slot] as const);
 
-describe("当たり判定の大きさ", () => {
-  it.each(SLOTS.map((slot) => [slot.id, slot] as const))("枠 %i は 44 × 44 以上", (_id, slot) => {
-    expect(slot.hitbox.width).toBeGreaterThanOrEqual(MIN_TARGET_PX);
-    expect(slot.hitbox.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
+describe("当たり判定の大きさと位置", () => {
+  it.each(bySlot)("枠 %i は，最も狭い舞台でも 44 × 44 CSS px 以上", (_id, slot) => {
+    const cssPerUnit = NARROWEST_STAGE_CSS_PX / STAGE.width;
+    expect(slot.hitbox.width * cssPerUnit).toBeGreaterThanOrEqual(MIN_TARGET_CSS_PX);
+    expect(slot.hitbox.height * cssPerUnit).toBeGreaterThanOrEqual(MIN_TARGET_CSS_PX);
+  });
+
+  it.each(bySlot)("枠 %i は，絵の外形（飲み物と頭の上の飾りを含む）を覆う", (_id, slot) => {
+    const { hitbox } = slot;
+    expect(hitbox.x).toBeLessThanOrEqual(slot.x + FIGURE.left * slot.scale);
+    expect(hitbox.x + hitbox.width).toBeGreaterThanOrEqual(slot.x + FIGURE.right * slot.scale);
+    expect(hitbox.y).toBeLessThanOrEqual(slot.y + FIGURE.top * slot.scale);
+  });
+
+  it.each(bySlot)("枠 %i は，舞台の外にはみ出さない", (_id, slot) => {
+    expect(slot.hitbox.x).toBeGreaterThanOrEqual(0);
+    expect(slot.hitbox.x + slot.hitbox.width).toBeLessThanOrEqual(STAGE.width);
+  });
+
+  it("奥の列は，テーブルに隠れた足もとを当たり判定に含めない", () => {
+    for (const slot of SLOTS.filter((item) => item.row === "back")) {
+      expect(slot.hitbox.y + slot.hitbox.height).toBe(TABLE.top);
+    }
+  });
+
+  it("同じ列の当たり判定は重ならない", () => {
+    for (const row of ["back", "front"] as const) {
+      const boxes = SLOTS.filter((slot) => slot.row === row).map((slot) => slot.hitbox);
+      for (const [left, right] of boxes.slice(0, -1).map((box, index) => [box, boxes[index + 1]] as const)) {
+        expect(left.x + left.width).toBeLessThanOrEqual(right?.x ?? Number.POSITIVE_INFINITY);
+      }
+    }
   });
 });
 

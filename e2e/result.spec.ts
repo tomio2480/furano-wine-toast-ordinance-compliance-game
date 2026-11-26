@@ -45,7 +45,8 @@ test("何もしなければ 0 点で「乾杯見習い」になり，内訳の�
   const labels = page.locator("#breakdown-body th");
   await expect(labels).toHaveText(["命中", "乾杯の加点", "乾杯の減点", "誤射"]);
   const points = await page.locator("#breakdown-body td:last-child").allTextContents();
-  const total = points.reduce((sum, text) => sum + Number(text.replaceAll(",", "")), 0);
+  const toNumber = (text: string) => Number(text.replaceAll(",", "").replace("−", "-"));
+  const total = points.reduce((sum, text) => sum + toNumber(text), 0);
   expect(String(total)).toBe(await page.locator("#result-score").textContent());
 });
 
@@ -103,14 +104,43 @@ test("文面をコピーできる", async ({ page, context }) => {
   expect(copied).toContain(GAME_URL);
 });
 
-test("クリップボードを使えない環境ではコピーできない旨を出す", async ({ page }) => {
+test("コピーできない環境では，その旨を出し，文面を手で写せる欄を開く", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
   });
   await page.goto("./");
+  const manual = page.getByRole("textbox", { name: /投稿文/ });
   await playToResult(page);
+  await expect(manual).toBeHidden();
   await page.getByRole("button", { name: "文面をコピー" }).click();
   await expect(page.locator("#share-status")).toHaveText(/コピーできませんでした/);
+  await expect(manual).toBeVisible();
+  await expect(manual).toBeFocused();
+  // URL は正規表現にせず，文字列として比べる（「.」が任意の 1 文字に一致しないように）．
+  const written = await manual.inputValue();
+  expect(written).toContain("#乾杯条例ガーディアン\n");
+  expect(written.endsWith(`\n${GAME_URL}`)).toBe(true);
+
+  await page.getByRole("button", { name: "もう一度" }).click();
+  await page.clock.runFor(COUNTDOWN_MS + MARGIN_MS + GAME_MS);
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "result");
+  await expect(manual).toBeHidden();
+});
+
+test("結果の得点と称号は，見出しへ焦点を移した後に読み上げる", async ({ page }) => {
+  // 焦点が移った瞬間のライブリージョンの文を，同期的に記録する．
+  await page.evaluate(() => {
+    document.addEventListener("focusin", (event) => {
+      if ((event.target as HTMLElement).id === "result-heading") {
+        const live = document.getElementById("result-live");
+        (window as unknown as { liveAtFocus: string }).liveAtFocus = live?.textContent ?? "（なし）";
+      }
+    });
+  });
+  await playToResult(page);
+  await expect(page.locator("#result-live")).toHaveText("得点は 0 点、称号は「乾杯見習い」です。");
+  const liveAtFocus = await page.evaluate(() => (window as unknown as { liveAtFocus?: string }).liveAtFocus);
+  expect(liveAtFocus).toBe("");
 });
 
 test("共有シートのボタンは Web Share API がある端末でだけ出す", async ({ page }) => {

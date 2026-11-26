@@ -140,7 +140,7 @@ test("減点中の長い状態表示も，1 倍の文字なら 1 行に収まる
   await startWithKeyboard(page);
   const status = page.locator("#kanpai-status");
   const isOneLine = await status.evaluate((element) => {
-    element.textContent = "減点中 -0167 不適合者がいます";
+    element.textContent = "減点中 −0167 不適合者がいます";
     const lineHeight = Number.parseFloat(getComputedStyle(element).fontSize) * 1.6;
     return element.getBoundingClientRect().height < lineHeight * 1.5 + 8;
   });
@@ -156,6 +156,76 @@ test("メニューのパネルは上部の帯の下から始まり，消音ボ�
     return;
   }
   expect(panel.y).toBeGreaterThanOrEqual(mute.y + mute.height);
+});
+
+async function boxOf(target: Locator) {
+  const box = await target.boundingBox();
+  if (box === null) {
+    throw new Error("要素が表示されていません");
+  }
+  return box;
+}
+
+test("注記への案内を遊び方の前に置き，注記は本文と同じ大きさで読める", async ({ page }) => {
+  await expect(page.getByRole("link", { name: "注記", exact: true })).toHaveAttribute("href", "#notes-heading");
+  const [lead, note] = await fontSizes(page, [".lead", ".notes p"]);
+  expect(note).toBe(lead);
+});
+
+test.describe("狭い舞台", () => {
+  test.use({ viewport: { width: 320, height: 568 } });
+
+  test("焦点枠の縁取り（7px）が舞台の端で切れない", async ({ page }) => {
+    await startWithKeyboard(page);
+    const stage = await boxOf(page.locator("#stage"));
+    const mute = await boxOf(page.locator("#mute-button"));
+    const kanpai = await boxOf(page.locator("#kanpai-button"));
+    expect(mute.y - stage.y).toBeGreaterThanOrEqual(7);
+    expect(stage.x + stage.width - (mute.x + mute.width)).toBeGreaterThanOrEqual(7);
+    expect(stage.y + stage.height - (kanpai.y + kanpai.height)).toBeGreaterThanOrEqual(7);
+  });
+});
+
+test.describe("横向きのスマートフォン", () => {
+  test.use({ viewport: { width: 740, height: 360 } });
+
+  test("文字を 2 倍にしても，帯は舞台の左，乾杯ボタンは右の余白に置き，参加者を覆わない", async ({ page }) => {
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    await startWithKeyboard(page);
+    const stage = await boxOf(page.locator("#stage"));
+    for (const target of await page.locator(".hud-item, #pause-button, #mute-button").all()) {
+      const box = await boxOf(target);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(stage.x + 0.5);
+    }
+    for (const target of await page.locator("#kanpai-status, #kanpai-button").all()) {
+      const box = await boxOf(target);
+      expect(box.x).toBeGreaterThanOrEqual(stage.x + stage.width - 0.5);
+      expect(box.x + box.width).toBeLessThanOrEqual(740);
+    }
+    const isLabelInside = await page
+      .locator("#kanpai-button")
+      .evaluate((element) => element.scrollWidth <= element.clientWidth);
+    expect(isLabelInside, "乾杯ボタンの文字が枠からはみ出さない").toBe(true);
+  });
+});
+
+test.describe("大きな画面", () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  test("文字を舞台に合わせて最大 1.5 倍にし，利用者が文字を大きくすれば同じ割合で大きくなる", async ({ page }) => {
+    const root = await page.evaluate(() => Number.parseFloat(getComputedStyle(document.documentElement).fontSize));
+    const [hud = 0] = await fontSizes(page, [".hud"]);
+    expect(hud).toBeGreaterThan(root * 1.2);
+    expect(hud).toBeLessThanOrEqual(root * 1.5);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    const [doubled = 0] = await fontSizes(page, [".hud"]);
+    expect(doubled).toBeCloseTo(hud * 2, 1);
+  });
 });
 
 test("OS の文字の大きさに合わせるよう宣言する", async ({ page }) => {

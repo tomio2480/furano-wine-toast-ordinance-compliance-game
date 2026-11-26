@@ -53,7 +53,11 @@ test("タイトル画面に axe の違反がない", async ({ page }) => {
 test("開始するとカウントダウンを経てプレイに入る", async ({ page }) => {
   await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("#countdown-number")).toHaveText("3");
-  await page.clock.runFor(COUNTDOWN_MS + MARGIN_MS);
+  // 表示されたままのライブリージョンへ書き，最初の「3」も読み上げる．
+  await expect(page.locator("#countdown-live")).toHaveText("3");
+  await page.clock.runFor(1_000);
+  await expect(page.locator("#countdown-live")).toHaveText("2");
+  await page.clock.runFor(COUNTDOWN_MS - 1_000 + MARGIN_MS);
   await expect(page.locator("#app")).toHaveAttribute("data-screen", "play");
   await expect(page.locator("#time-left")).toHaveText("60");
   await expect(page.getByRole("button", { name: /乾杯/ })).toBeVisible();
@@ -69,6 +73,40 @@ test("Space の長押しで乾杯の状態表示が変わり，離すと戻る",
   await page.keyboard.up("Space");
   await page.clock.runFor(100);
   await expect(status).toHaveText("長押しで乾杯");
+});
+
+test("再開のカウントダウン中の長押しは中立の表示のまま受け付け，始まると乾杯する", async ({ page }) => {
+  // 最初の参加者が現れてから止め，参加者がいる状態でカウントダウンを迎える．
+  await startPlaying(page);
+  await page.clock.runFor(1_000);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "再開する" }).click();
+  const status = page.locator("#kanpai-status");
+  await page.keyboard.down("Space");
+  await page.clock.runFor(1_000);
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "countdown");
+  await expect(status).toHaveText("長押しで乾杯");
+  await expect(page.locator("#app")).toHaveAttribute("data-kanpai", "neutral");
+  await page.clock.runFor(COUNTDOWN_MS);
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "play");
+  await expect(status).toHaveText(/加点中|減点中/);
+  await page.keyboard.up("Space");
+});
+
+test("Space を押したままマウスで一時停止しても，離したときに再開しない", async ({ page }) => {
+  await startPlaying(page);
+  await page.keyboard.down("Space");
+  await page.getByRole("button", { name: "一時停止" }).click();
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "pause");
+  await expect(page.getByRole("button", { name: "再開する" })).toBeFocused();
+  // 押し続けている間の自動の繰り返しを再現する．
+  await page.keyboard.down("Space");
+  await page.keyboard.down("Space");
+  await page.keyboard.up("Space");
+  await page.clock.runFor(100);
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "pause");
+  await page.keyboard.press("Space");
+  await expect(page.locator("#app")).toHaveAttribute("data-screen", "countdown");
 });
 
 test("ウィンドウがフォーカスを失うと乾杯の押下を終える", async ({ page }) => {
@@ -339,7 +377,7 @@ test("時間切れで結果画面に移り，axe の違反がない", async ({ p
   await startPlaying(page);
   await page.clock.runFor(GAME_MS);
   await expect(page.locator("#app")).toHaveAttribute("data-screen", "result");
-  await expect(page.locator("#result-score")).toHaveText(/^-?[\d,]+$/);
+  await expect(page.locator("#result-score")).toHaveText(/^−?[\d,]+$/);
   await expectNoAxeViolations(page);
 });
 

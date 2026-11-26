@@ -1,6 +1,8 @@
 /*
  * 画面の切り替えと乾杯の状態は，#app の data 属性だけで見た目を決める．
- * 文字の大きさは rem で決め，利用者の文字の設定とブラウザのズームに追従させる．
+ * 文字の大きさは，舞台の文字（1rem × --text-boost）に対する em で決める．
+ * rem を基にするため，利用者の文字の設定とブラウザのズームに追従する．
+ * --text-boost は大きな画面で文字を最大 1.5 倍にする倍率で，舞台の幅から求める（viewport.ts）．
  * ルートの font-size は指定しない（text-scale の meta が OS の設定を反映する）．
  */
 :root {
@@ -16,9 +18,11 @@
   --bad: #a3221b;
   --focus: #ffd54a;
   --focus-edge: 0 0 0 7px var(--bg);
+  /* 焦点枠の縁取りが舞台の端で切れないよう，端から離す最小の間隔．縁取りの 7px より広くする． */
+  --edge-gap: 8px;
   --min-target: 44px;
-  /* 上部の帯が占める高さの目安．帯の余白，ボタンの高さ，焦点枠の分を足す． */
-  --topbar-clearance: calc(2cqw + var(--min-target) + 0.75rem + 8px);
+  /* 上部の帯が占める高さの目安．帯の余白，ボタンの高さ，焦点枠の分を足す．単位は使う要素で解決される． */
+  --topbar-clearance: calc(max(2cqw, var(--edge-gap)) + var(--min-target) + 0.75em + 8px);
 }
 
 * {
@@ -51,6 +55,7 @@ body {
   width: min(100vw, calc(100dvh * 9 / 16));
   overflow: hidden;
   container-type: inline-size;
+  font-size: calc(1rem * var(--text-boost, 1));
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -120,6 +125,7 @@ h2[tabindex="-1"]:focus {
  * 上部の帯．残り時間と得点，一時停止と消音のボタンを 1 列に並べ，
  * 文字が大きくなっても重ならず折り返すようにする．
  * 帯の隙間はキャンバスへの操作を通し，消音ボタンはパネルより手前に出す．
+ * 上と右は焦点枠の縁取りが切れないだけ端から離す．
  */
 .topbar {
   position: absolute;
@@ -128,10 +134,11 @@ h2[tabindex="-1"]:focus {
   display: flex;
   align-items: flex-start;
   gap: 2cqw;
-  padding: 2cqw 2cqw 6cqw 3cqw;
+  padding: max(2cqw, var(--edge-gap)) max(2cqw, var(--edge-gap)) 6cqw 3cqw;
   pointer-events: none;
 }
 
+/* 遊んでいる間は帯を暗くし，文字を読みやすくする．会場の暗い天井にも近づける． */
 #app:is([data-screen="countdown"], [data-screen="play"], [data-screen="pause"]) .topbar {
   background: linear-gradient(rgb(10 14 26 / 85%), rgb(10 14 26 / 0%));
 }
@@ -148,7 +155,7 @@ h2[tabindex="-1"]:focus {
   align-items: center;
   min-width: 0;
   min-height: var(--min-target);
-  font-size: 1rem;
+  font-size: 1em;
 }
 
 .hud-item {
@@ -171,23 +178,34 @@ h2[tabindex="-1"]:focus {
 .icon-button {
   --shown-display: inline-block;
   padding: 0;
-  font-size: 1.125rem;
+  font-size: 1.125em;
   background: rgb(10 14 26 / 60%);
 }
 
 .mute-button {
   --shown-display: inline-block;
   padding: 0 0.6em;
-  font-size: 0.875rem;
+  font-size: 0.875em;
   background: rgb(10 14 26 / 60%);
 }
 
-/* 消音中は塗りと取り消し線でも示す． */
+/*
+ * 消音中は塗りとチェックの印でも示す．取り消し線は「消音を取り消した」とも読めるため使わない．
+ * 印は読み上げず，状態は aria-pressed で伝える．
+ */
+.mute-check {
+  display: none;
+  margin-right: 0.3em;
+}
+
 .mute-button[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text);
-  text-decoration: line-through;
+}
+
+.mute-button[aria-pressed="true"] .mute-check {
+  display: inline;
 }
 
 /* メニュー系の画面 */
@@ -202,7 +220,7 @@ h2[tabindex="-1"]:focus {
   padding: 5cqw 6cqw;
   border-radius: 4cqw;
   background: var(--panel);
-  font-size: 0.9375rem;
+  font-size: 0.9375em;
   line-height: 1.6;
   touch-action: manipulation;
   user-select: text;
@@ -270,24 +288,31 @@ h2[tabindex="-1"]:focus {
   white-space: nowrap;
 }
 
+/* 注記は本文と同じ大きさで読めるようにする．色だけ控えめにする． */
 .notes {
   margin-top: 1.4em;
   padding-top: 0.6em;
   border-top: 1px solid rgb(255 255 255 / 25%);
-  font-size: 0.88em;
   color: var(--muted-text);
 }
 
 .notes h2 {
   margin-top: 0;
-  font-size: 1.1em;
+  font-size: 1.15em;
   color: var(--text);
+}
+
+/* 狭い画面では注記がスクロールの先になるため，遊び方の前に注記への案内を置く． */
+.notes-pointer {
+  margin: 0.4em 0 0;
+  color: var(--muted-text);
 }
 
 .notes p {
   margin: 0 0 0.5em;
 }
 
+.notes-pointer a,
 .notes a {
   color: #ffe08a;
 }
@@ -359,6 +384,29 @@ h2[tabindex="-1"]:focus {
   margin: 0 0 0.6em;
 }
 
+/* コピーできなかったときに文面を手で写す欄． */
+.share-manual {
+  margin: 0 0 0.8em;
+}
+
+.share-manual label {
+  display: block;
+  margin-bottom: 0.2em;
+}
+
+.share-manual textarea {
+  width: 100%;
+  padding: 0.4em;
+  border: 2px solid var(--muted-text);
+  border-radius: 0.4em;
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* カウントダウン */
 .countdown {
   position: absolute;
@@ -369,7 +417,7 @@ h2[tabindex="-1"]:focus {
 
 #countdown-number {
   margin: 0;
-  font-size: 7rem;
+  font-size: 7em;
   font-weight: 800;
   color: var(--text);
   text-shadow: 0 0.6cqw 2cqw rgb(0 0 0 / 70%);
@@ -380,7 +428,7 @@ h2[tabindex="-1"]:focus {
 .kanpai {
   --shown-display: flex;
   position: absolute;
-  inset: auto 0 2.5cqw;
+  inset: auto 0 max(2.5cqw, var(--edge-gap));
   pointer-events: none;
   flex-direction: column;
   align-items: center;
@@ -393,19 +441,21 @@ h2[tabindex="-1"]:focus {
   padding: 0.2em 0.9em;
   border-radius: 999px;
   background: rgb(10 14 26 / 80%);
-  font-size: 0.875rem;
+  font-size: 0.875em;
   font-weight: 700;
   text-align: center;
 }
 
+/* 狭い舞台で文字を大きくしても枠に収まるよう，左右の余白は舞台の幅に合わせて詰める． */
 .kanpai-button {
   min-width: 44cqw;
   max-width: 92cqw;
   min-height: 15cqw;
+  padding-inline: min(1.2em, 6cqw);
   white-space: nowrap;
   border: 0.8cqw solid var(--text);
   background: var(--wine);
-  font-size: 1.5rem;
+  font-size: 1.5em;
   font-weight: 800;
   letter-spacing: 0.2em;
   box-shadow: 0 1cqw 0 rgb(0 0 0 / 45%);
@@ -448,4 +498,52 @@ h2[tabindex="-1"]:focus {
 
 #app[data-kanpai="minus"] .kanpai-status {
   background: var(--bad);
+}
+
+/*
+ * 横向きのスマートフォン．舞台は高さに合わせて細くなり，文字を大きくすると帯と乾杯ボタンが参加者を覆う．
+ * 舞台の左右は空いているため，上部の帯を左の余白へ，乾杯ボタンを右の余白へ出す．
+ * 余白の幅は，舞台を中央に置いたときの左右の残り（(100vw - 舞台の幅) / 2）とする．
+ */
+@media (orientation: landscape) and (max-height: 540px) and (min-aspect-ratio: 3 / 2) {
+  :root {
+    --side-width: calc((100vw - 100cqw) / 2);
+    --topbar-clearance: var(--edge-gap);
+  }
+
+  #stage {
+    overflow: visible;
+  }
+
+  .topbar {
+    inset: 0 100% auto auto;
+    width: var(--side-width);
+    flex-direction: column;
+    padding-bottom: 0;
+    padding-left: max(var(--edge-gap), env(safe-area-inset-left));
+  }
+
+  /* 舞台の外は暗い地のため，帯を暗くする塗りは要らない． */
+  #app:is([data-screen="countdown"], [data-screen="play"], [data-screen="pause"]) .topbar {
+    background: none;
+  }
+
+  .hud {
+    flex: none;
+  }
+
+  .controls {
+    margin-left: 0;
+  }
+
+  .kanpai {
+    inset: auto auto max(2.5cqw, var(--edge-gap)) 100%;
+    width: var(--side-width);
+    padding-right: max(var(--edge-gap), env(safe-area-inset-right));
+  }
+
+  .kanpai-status,
+  .kanpai-button {
+    max-width: 100%;
+  }
 }

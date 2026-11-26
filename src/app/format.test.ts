@@ -6,7 +6,7 @@ describe("formatScore", () => {
     [0, "0"],
     [313, "313"],
     [12_345, "12,345"],
-    [-237, "-237"],
+    [-237, "−237"],
   ])("%i は %s", (score, text) => {
     expect(formatScore(score)).toBe(text);
   });
@@ -39,7 +39,7 @@ describe("countdownNumber", () => {
 describe("kanpaiStatus", () => {
   it("状態を色以外に文字でも示す", () => {
     expect(kanpaiStatus("plus")).toBe("加点中 +237");
-    expect(kanpaiStatus("minus")).toBe("減点中 -0167 不適合者がいます");
+    expect(kanpaiStatus("minus")).toBe("減点中 −0167 不適合者がいます");
     expect(kanpaiStatus("neutral")).toBe("長押しで乾杯");
   });
 });

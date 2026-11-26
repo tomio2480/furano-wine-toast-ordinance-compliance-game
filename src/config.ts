@@ -21,12 +21,18 @@ export interface ScoreUnit {
   readonly label: string;
 }
 
+/**
+ * 画面と投稿文の負の数に使う記号（U+2212）．ハイフンと混ぜず，正の数の「+」と幅をそろえる．
+ * 遊び方の HTML も同じ記号で書く．
+ */
+export const MINUS_SIGN = "−";
+
 function gain(digits: string): ScoreUnit {
   return { points: Number(digits), label: `+${digits}` };
 }
 
 function loss(digits: string): ScoreUnit {
-  return { points: -Number(digits), label: `-${digits}` };
+  return { points: -Number(digits), label: `${MINUS_SIGN}${digits}` };
 }
 
 /** 命中と誤射の得点． */
@@ -123,42 +129,58 @@ export interface Slot {
   readonly y: number;
   /** 描画の倍率．手前の列ほど大きい． */
   readonly scale: number;
-  /** 当たり判定．体と飲み物を含め，44 × 44 以上を確保する． */
+  /** 当たり判定．絵の外形を覆い，最も狭い舞台でも 44 × 44 CSS px 以上を確保する． */
   readonly hitbox: Rect;
 }
 
 /** 論理座標系の大きさ．縦長のスマートフォン画面を基準にする． */
 export const STAGE = { width: 360, height: 640 } as const;
 
-const FIGURE = { width: 72, height: 150 } as const;
+/**
+ * 参加者の絵の外形．足もとの中央を原点とし，倍率 1 での範囲を示す．
+ * 右手に持つ飲み物の分だけ右へ広く，ニット帽の飾りやペットボトルの蓋の分だけ上へ高い
+ * （people.ts と drinks.ts の描画から求めた値．絵を変えたら合わせる）．
+ */
+export const FIGURE = { left: -30, right: 44, top: -157 } as const;
+
+/**
+ * 当たり判定を 44 × 44 CSS px 以上に保つ，最も狭い舞台の幅（CSS px）．
+ * 舞台の高さは 356 px に当たり，横向きのスマートフォンの多くはこれより広い．
+ */
+export const NARROWEST_STAGE_CSS_PX = 200;
+const MIN_TARGET_CSS_PX = 44;
+const MIN_HITBOX_WIDTH = Math.ceil((MIN_TARGET_CSS_PX * STAGE.width) / NARROWEST_STAGE_CSS_PX);
 
 /** 長テーブルの天板の上端と，幕板の下端（論理座標）． */
 export const TABLE = { top: 332, apronBottom: 372 } as const;
 
 /**
- * @param hidden 足もとからテーブルに隠れる高さ．当たり判定から除く
+ * 当たり判定は絵の外形に合わせる．絵が細い奥の列は，絵の中心から左右に広げて最小の幅を満たす．
+ * @param bottom 当たり判定の下端．奥の列はテーブルに隠れた足もとを除き，天板の上端までとする
  */
-function slot(id: number, row: Row, x: number, y: number, scale: number, hidden = 0): Slot {
-  const width = FIGURE.width * scale;
-  const height = FIGURE.height * scale;
+function slot(id: number, row: Row, x: number, y: number, scale: number, bottom = y): Slot {
+  const left = x + FIGURE.left * scale;
+  const right = x + FIGURE.right * scale;
+  const widen = Math.max(0, MIN_HITBOX_WIDTH - (right - left)) / 2;
+  const top = y + FIGURE.top * scale;
   return {
     id,
     row,
     x,
     y,
     scale,
-    hitbox: { x: x - width / 2, y: y - height, width, height: height - hidden },
+    hitbox: { x: left - widen, y: top, width: right - left + widen * 2, height: bottom - top },
   };
 }
 
-const BACK_HIDDEN = 24;
+const BACK_SCALE = 0.78;
 
 /** 出現の枠．奥の列 4 枠と手前の列 3 枠．数字キーの 1〜7 に対応する． */
 export const SLOTS: readonly Slot[] = [
-  slot(1, "back", 54, TABLE.apronBottom, 0.78, BACK_HIDDEN),
-  slot(2, "back", 138, TABLE.apronBottom, 0.78, BACK_HIDDEN),
-  slot(3, "back", 222, TABLE.apronBottom, 0.78, BACK_HIDDEN),
-  slot(4, "back", 306, TABLE.apronBottom, 0.78, BACK_HIDDEN),
+  slot(1, "back", 54, TABLE.apronBottom, BACK_SCALE, TABLE.top),
+  slot(2, "back", 138, TABLE.apronBottom, BACK_SCALE, TABLE.top),
+  slot(3, "back", 222, TABLE.apronBottom, BACK_SCALE, TABLE.top),
+  slot(4, "back", 306, TABLE.apronBottom, BACK_SCALE, TABLE.top),
   slot(5, "front", 72, 520, 1),
   slot(6, "front", 180, 520, 1),
   slot(7, "front", 288, 520, 1),
