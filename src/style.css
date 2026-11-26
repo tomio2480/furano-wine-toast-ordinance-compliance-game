@@ -134,8 +134,13 @@ h2[tabindex="-1"]:focus {
   display: flex;
   align-items: flex-start;
   gap: 2cqw;
-  padding: max(2cqw, var(--edge-gap)) max(2cqw, var(--edge-gap)) 0 3cqw;
+  padding: max(2cqw, var(--edge-gap)) max(2cqw, var(--edge-gap)) 6cqw 3cqw;
   pointer-events: none;
+}
+
+/* 遊んでいる間は帯を暗くし，文字を読みやすくする．会場の暗い天井にも近づける． */
+#app:is([data-screen="countdown"], [data-screen="play"], [data-screen="pause"]) .topbar {
+  background: linear-gradient(rgb(10 14 26 / 85%), rgb(10 14 26 / 0%));
 }
 
 .topbar button {
@@ -146,22 +151,15 @@ h2[tabindex="-1"]:focus {
   --shown-display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: 1cqw 2cqw;
+  gap: 0 4cqw;
   align-items: center;
   min-width: 0;
   min-height: var(--min-target);
   font-size: 1em;
 }
 
-/*
- * 残り時間と得点は，項目ごとの暗い下地で読みやすくする．
- * 帯の全体を塗らないため，文字を大きくしても隠れる参加者は文字の範囲にとどまる．
- */
 .hud-item {
   margin: 0;
-  padding: 0 0.5em;
-  border-radius: 0.8em;
-  background: rgb(10 14 26 / 80%);
 }
 
 .controls {
@@ -521,7 +519,13 @@ h2[tabindex="-1"]:focus {
     inset: 0 100% auto auto;
     width: var(--side-width);
     flex-direction: column;
+    padding-bottom: 0;
     padding-left: max(var(--edge-gap), env(safe-area-inset-left));
+  }
+
+  /* 舞台の外は暗い地のため，帯を暗くする塗りは要らない． */
+  #app:is([data-screen="countdown"], [data-screen="play"], [data-screen="pause"]) .topbar {
+    background: none;
   }
 
   .hud {

@@ -139,41 +139,53 @@ export function paintBackground(ctx: Ctx): void {
   }
 }
 
-const CHAIR = "#4a2a1a";
-const CHAIR_LIGHT = "#6b4430";
-/** 椅子は手前の列の人の間に置き，人に隠れすぎないようにする． */
-const CHAIR_XS = [126, 234] as const;
+const CHAIR_WOOD = "#d6a463";
+const CHAIR_WOOD_SHADE = "#b07a42";
+const CHAIR_WOOD_LIGHT = "#ecc68e";
+const CHAIR_SEAT = "#5e7347";
+/** 椅子は手前の列の人の間に置く．床に着く位置は，テーブルの脚より手前とする． */
+const CHAIRS = [
+  { x: 126, floor: 462 },
+  { x: 234, floor: 462 },
+] as const;
 
 /**
- * テーブルの下に押し込んだ濃茶の曲木風の椅子．背もたれをこちらへ向け，
- * 背もたれの輪の上端が幕板のすぐ下に来る．
+ * 背もたれ．中央が厚く両端が細い三日月形の曲げ板とし，
+ * 両端は肘掛けとして奥（テーブル側）へ回り込む．
  */
-function chair(ctx: Ctx, x: number): void {
-  const top = TABLE.apronBottom + 4;
+function chairBack(ctx: Ctx, x: number, y: number): void {
   for (const side of [-1, 1]) {
-    strokeLine(ctx, [x + side * 9, top + 46], [x + side * 9, top + 66], 2.4, CHAIR);
+    strokeLine(ctx, [x + side * 22, y + 1], [x + side * 19, y - 6], 4.5, CHAIR_WOOD);
   }
   ctx.beginPath();
-  ctx.ellipse(x, top + 64, 13, 3, 0, 0, Math.PI * 2);
-  ctx.lineWidth = 1.6;
-  ctx.strokeStyle = CHAIR;
-  ctx.stroke();
-  fillRoundRect(ctx, x - 17, top + 42, 34, 6, 3, CHAIR_LIGHT);
+  ctx.ellipse(x, y, 24, 10, 0, 0, Math.PI);
+  ctx.ellipse(x, y - 3, 22, 5, 0, Math.PI, 0, true);
+  ctx.closePath();
+  ctx.fillStyle = CHAIR_WOOD;
+  ctx.fill();
   ctx.beginPath();
-  ctx.moveTo(x - 13, top + 72);
-  ctx.lineTo(x - 13, top + 16);
-  ctx.ellipse(x, top + 16, 13, 16, 0, Math.PI, Math.PI * 2);
-  ctx.lineTo(x + 13, top + 72);
-  ctx.lineWidth = 3.5;
-  ctx.strokeStyle = CHAIR;
+  ctx.ellipse(x, y - 3, 22, 5, 0, Math.PI * 0.12, Math.PI * 0.88);
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = CHAIR_WOOD_LIGHT;
   ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x - 7, top + 42);
-  ctx.lineTo(x - 7, top + 22);
-  ctx.ellipse(x, top + 22, 7, 10, 0, Math.PI, Math.PI * 2);
-  ctx.lineTo(x + 7, top + 42);
-  ctx.lineWidth = 2;
-  ctx.stroke();
+}
+
+/**
+ * 会場の写真にある，明るい木の肘掛け椅子．丸い座面は緑で，4 本の脚は少し開く．
+ * テーブルから引き出した向きで，背もたれをこちらへ向ける．後ろの脚は背もたれまで伸びる．
+ */
+function chair(ctx: Ctx, x: number, floor: number): void {
+  const seat = floor - 40;
+  const rail = seat - 24;
+  for (const side of [-1, 1]) {
+    strokeLine(ctx, [x + side * 13, seat + 2], [x + side * 15, floor - 6], 3, CHAIR_WOOD_SHADE);
+  }
+  fillEllipse(ctx, x, seat, 20, 6.5, CHAIR_WOOD);
+  fillEllipse(ctx, x, seat - 0.5, 17.5, 5, CHAIR_SEAT);
+  for (const side of [-1, 1]) {
+    strokeLine(ctx, [x + side * 21, floor], [x + side * 18, rail + 2], 3.6, CHAIR_WOOD);
+  }
+  chairBack(ctx, x, rail);
 }
 
 function plate(ctx: Ctx, x: number, food: string): void {
@@ -193,13 +205,10 @@ function slotTag(ctx: Ctx, x: number, y: number, label: string): void {
 /**
  * 奥の列より手前，手前の列より奥に描く長テーブル．
  * 濃い木目の天板と幕板で奥の列の足もとを隠し，白木の脚で支える．
- * 下には椅子を押し込み，数字キーの枠番号も添える．
+ * 手前には椅子を置き，数字キーの枠番号も添える．
  */
 export function paintTable(ctx: Ctx): void {
   const width = STAGE.width - 16;
-  for (const x of CHAIR_XS) {
-    chair(ctx, x);
-  }
   fillRoundRect(ctx, 26, TABLE.apronBottom - 4, 9, 64, 2, WOOD_LIGHT);
   fillRoundRect(ctx, STAGE.width - 35, TABLE.apronBottom - 4, 9, 64, 2, WOOD_LIGHT);
   fillRoundRect(ctx, 8, TABLE_TOP - 2, width, 9, 2, "#6b4430");
@@ -210,6 +219,9 @@ export function paintTable(ctx: Ctx): void {
   plate(ctx, 96, "#f2d36b");
   plate(ctx, 180, "#7b3f8c");
   plate(ctx, 264, "#c9773a");
+  for (const { x, floor } of CHAIRS) {
+    chair(ctx, x, floor);
+  }
   for (const slot of SLOTS) {
     slotTag(ctx, slot.x, slot.row === "back" ? TABLE.apronBottom - 12 : slot.y + 12, String(slot.id));
   }
