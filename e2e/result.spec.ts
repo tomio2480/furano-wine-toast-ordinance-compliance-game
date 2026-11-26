@@ -50,6 +50,18 @@ test("何もしなければ 0 点で「乾杯見習い」になり，内訳の�
   expect(String(total)).toBe(await page.locator("#result-score").textContent());
 });
 
+test("称号の虹色の動きは 5 秒以内に止まり，動きを減らす設定では動かさない（WCAG 2.2.2）", async ({ page }) => {
+  await playToResult(page);
+  const title = page.locator("#result-title");
+  const endTimes = await title.evaluate((element) =>
+    element.getAnimations().map((animation) => Number(animation.effect?.getComputedTiming().endTime)),
+  );
+  expect(endTimes).toHaveLength(1);
+  expect(endTimes[0]).toBeLessThanOrEqual(5_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await title.evaluate((element) => element.getAnimations().length)).toBe(0);
+});
+
 test("内訳の表には列の見出しがある", async ({ page }) => {
   await playToResult(page);
   await expect(page.locator(".breakdown thead th")).toHaveText(["項目", "内容", "得点"]);

@@ -228,6 +228,43 @@ test.describe("大きな画面", () => {
   });
 });
 
+test.describe("題字の GIF 風の動き", () => {
+  const glyphs = (page: Page) => page.locator("#title-heading .pixel-logo canvas");
+  const runningAnimations = (page: Page) =>
+    glyphs(page).evaluateAll((elements) => elements.reduce((sum, element) => sum + element.getAnimations().length, 0));
+
+  test("題字はドット絵で見せ，読み上げには元の文字を使う", async ({ page }) => {
+    await expect(page.getByRole("heading", { level: 1, name: "乾杯条例ガーディアン" })).toBeVisible();
+    await expect(page.locator("#title-heading .pixel-logo")).toHaveAttribute("aria-hidden", "true");
+    await expect(glyphs(page)).toHaveCount(10);
+    const rendering = await glyphs(page).first().evaluate((element) => getComputedStyle(element).imageRendering);
+    expect(rendering).toBe("pixelated");
+  });
+
+  test("題字の動きは 5 秒以内に止まり，マウスを載せると最初から流れる（WCAG 2.2.2）", async ({ page }) => {
+    const endTimes = await glyphs(page).evaluateAll((elements) =>
+      elements.flatMap((element) =>
+        element.getAnimations().map((animation) => Number(animation.effect?.getComputedTiming().endTime)),
+      ),
+    );
+    expect(endTimes).toHaveLength(10);
+    expect(Math.max(...endTimes)).toBeLessThanOrEqual(5_000);
+    await glyphs(page).evaluateAll((elements) => {
+      for (const animation of elements.flatMap((element) => element.getAnimations())) {
+        animation.finish();
+      }
+    });
+    expect(await runningAnimations(page)).toBe(0);
+    await page.locator("#title-heading").hover();
+    expect(await runningAnimations(page)).toBe(10);
+  });
+
+  test("動きを減らす設定では，題字を動かさない", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    expect(await runningAnimations(page)).toBe(0);
+  });
+});
+
 test("OS の文字の大きさに合わせるよう宣言する", async ({ page }) => {
   await expect(page.locator('meta[name="text-scale"]')).toHaveAttribute("content", "scale");
 });

@@ -129,6 +129,7 @@ https://tomio2480.github.io/furano-wine-toast-ordinance-compliance-game/
 - E2E テストの初回は `npx playwright install chromium` でブラウザを入れる
 - Content Security Policy はビルド時だけ付く．確かめるときは `npm run dev` ではなく `build` と `preview` を使う
 - `npm run og-image` は Playwright の Chromium で SVG を描く．日本語の題字は手元の日本語フォントで描かれるため，作り直したら PNG を目で確かめる
+- OGP 画像は半分の大きさで描き，色をウェブセーフカラーに丸めてから 2 倍に拡大する．ドットの見える昔の画像に見せるためである
 - `cccc` は `moznion/cccc` の v1.10.0 を PATH に置く．環境変数 `CCCC_BIN` でも場所を指せる
 - 複雑度の上限は cognitive と cyclomatic ともに 8 で，`cccc.toml` に書いた
 

@@ -2,41 +2,46 @@
  * タイトルと結果の画面は，1990〜2000 年代のウェブサイト風の見た目にする．
  * 白い地に青い題字の帯，水色の見出しの帯，茶色の矢印の箇条書き，青い下線のリンク，
  * 立体的な灰色のボタン，罫線の表，アクセスカウンター風の得点で組む．
- * 点滅や流れる文字などの動く飾りは使わない（WCAG 2.2.2，2.3.1）．
- * 文字と背景の色の比は AA を保つ．文字の大きさは style.css と同じく em で決める．
+ *
+ * 当時の表示に合わせ，次のように描く．実装は今の CSS のままとする．
+ * - 色はウェブセーフカラー（各成分 0x33 刻み）を使う．グラデーションはなめらかにせず，帯に分ける
+ * - 角は丸めず，影はぼかさない．半透明も使わない
+ * - 動きは GIF のコマ送りのように 1 コマ 0.1〜0.15 秒で飛ばす
+ *
+ * 動きは画面を出してから 5 秒以内に止め，触れるともう一度流す（WCAG 2.2.2）．
+ * 動きを減らす設定では動かさない．文字と背景の色の比は AA を保つ．
  */
 .panel.retro {
   --retro-ink: #000;
   --retro-sub-ink: #333;
   --retro-paper: #fff;
   --retro-frame: #fc0;
-  --retro-banner: #03c;
   --retro-band: #0ff;
   --retro-band-edge: #09c;
   --retro-arrow: #930;
-  --retro-link: #00e;
-  --retro-visited: #551a8b;
-  --retro-face: #d4d0c8;
+  --retro-link: #00f;
+  --retro-visited: #639;
+  --retro-face: #ccc;
   --retro-light-edge: #fff;
-  --retro-dark-edge: #808080;
+  --retro-dark-edge: #666;
   --retro-cell: #ccf;
   --retro-head: #069;
   --retro-alert: #c00;
 
   color-scheme: light;
   border: 3px solid var(--retro-frame);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--retro-paper);
   color: var(--retro-ink);
   font-family:
     "MS PGothic", "ＭＳ Ｐゴシック", Osaka, "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
 }
 
-/* 題字の帯．パネルの余白を打ち消し，枠いっぱいに広げる． */
+/* 題字の帯．パネルの余白を打ち消して枠いっぱいに広げ，青を帯に分けて塗る． */
 .panel.retro .retro-banner {
   margin: -5cqw -6cqw 0.6em;
   padding: 0.35em 0.4em 0.45em;
-  background: linear-gradient(#35e, var(--retro-banner) 60%, #001f8a);
+  background: linear-gradient(#36f 0 25%, #33f 25% 50%, #03c 50% 80%, #039 80%);
   line-height: 1.25;
   text-align: center;
 }
@@ -50,28 +55,117 @@
 }
 
 /*
- * 飾り文字の題字．橙のグラデーションを濃い茶の縁で囲み，影を落とす．
+ * 飾り文字．黄から橙の帯で塗り，濃い茶の縁で囲み，ぼかさない影を落とす．
  * 文字は画像にせず HTML の文字のまま描く（1.4.5）．青い帯の上で比 3:1 以上を保つ．
  */
 .wordart {
   display: inline-block;
-  background: linear-gradient(#fff7a8 10%, #ffb000 50%, #f06a00 90%);
+  background: linear-gradient(#ff9 0 25%, #fc0 25% 50%, #f90 50% 75%, #f60 75%);
   background-clip: text;
   color: transparent;
   font-weight: 900;
   letter-spacing: 0.04em;
-  filter: drop-shadow(0.06em 0.08em 0 rgb(0 0 0 / 55%));
+  filter: drop-shadow(0.06em 0.08em 0 #000);
   -webkit-background-clip: text;
-  -webkit-text-stroke: 0.04em #3d1600;
+  -webkit-text-stroke: 0.04em #300;
 }
 
-/* 強制カラーモードでは，飾りを外してシステムの文字の色で読ませる． */
+/*
+ * タイトルの題字はドット絵にする（pixel-logo.ts）．1 文字ずつの小さな画像を整数倍に拡大する．
+ * 1 ドットの大きさ（--art-px）は，帯の幅に収まる最大の整数 px とし，4px で止める．
+ * 元の文字は読み上げ用に残し，見た目だけ隠す．
+ */
+.retro-banner.has-pixel-logo .wordart {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pixel-logo {
+  --art-px: clamp(1px, round(down, calc(84cqw / var(--art-w)), 1px), 4px);
+
+  display: inline-flex;
+  align-items: flex-end;
+  vertical-align: middle;
+}
+
+/*
+ * 題字は 1 文字ずつ波打たせる．1 コマ 0.1 秒の 8 コマで 1 周し，6 周（4.8 秒）で止める．
+ * 文字ごとに 1 コマずつ遅らせ，波が右へ流れるようにする．
+ */
+.pixel-logo canvas {
+  width: calc(var(--cw) * var(--art-px));
+  height: calc(var(--ch) * var(--art-px));
+  image-rendering: pixelated;
+  animation: logo-wave 800ms step-end 6;
+  animation-delay: calc(var(--i) * -100ms);
+}
+
+/* 縁と影の余白は隣の文字に重ね，文字の間を詰める． */
+.pixel-logo canvas + canvas {
+  margin-left: calc(-1 * var(--overlap) * var(--art-px));
+}
+
+@keyframes logo-wave {
+  0% {
+    translate: 0 0;
+  }
+
+  12.5% {
+    translate: 0 calc(-1 * var(--art-px));
+  }
+
+  25% {
+    translate: 0 calc(-2 * var(--art-px));
+  }
+
+  37.5% {
+    translate: 0 calc(-1 * var(--art-px));
+  }
+
+  50% {
+    translate: 0 0;
+  }
+
+  62.5% {
+    translate: 0 var(--art-px);
+  }
+
+  75% {
+    translate: 0 calc(2 * var(--art-px));
+  }
+
+  87.5% {
+    translate: 0 var(--art-px);
+  }
+
+  100% {
+    translate: 0 0;
+  }
+}
+
+/* 強制カラーモードでは，画像と飾りを外し，システムの文字の色で題字を示す． */
 @media (forced-colors: active) {
   .wordart {
     background: none;
     color: CanvasText;
     filter: none;
     -webkit-text-stroke: 0;
+  }
+
+  .retro-banner.has-pixel-logo .wordart {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .pixel-logo {
+    display: none;
   }
 }
 
@@ -132,10 +226,19 @@
   content: "";
 }
 
-/* 注記の上は虹色の線で区切る． */
+/* 注記の上は，6 色の帯の虹色の線で区切る． */
 .panel.retro .notes {
   border-top: 4px solid;
-  border-image: linear-gradient(90deg, #f00, #f90, #ff0, #3c3, #09f, #63c) 1;
+  border-image: linear-gradient(
+      90deg,
+      #f00 0 16.6%,
+      #f90 16.6% 33.3%,
+      #ff0 33.3% 50%,
+      #3c3 50% 66.6%,
+      #09f 66.6% 83.3%,
+      #63c 83.3%
+    )
+    1;
 }
 
 /*
@@ -146,14 +249,13 @@
   border: 2px solid;
   border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
   border-radius: 0;
-  background: linear-gradient(#fff, var(--retro-face));
+  background: linear-gradient(#fff 0 50%, var(--retro-face) 50%);
   color: var(--retro-ink);
-  text-shadow: 0 1px 0 #fff;
 }
 
 .panel.retro button.primary {
   padding-inline: 2em;
-  background: linear-gradient(#fff3b0, #ffc233 55%, #f90);
+  background: linear-gradient(#ff9 0 35%, #fc3 35% 70%, #f90 70%);
 }
 
 /* タイトルの「はじめる」は中央に置く． */
@@ -163,11 +265,11 @@
 }
 
 .panel.retro button:hover {
-  background: linear-gradient(#e8f0ff, #9bf);
+  background: linear-gradient(#ccf 0 50%, #99f 50%);
 }
 
 .panel.retro button.primary:hover {
-  background: linear-gradient(#ffe0a0, #f80);
+  background: linear-gradient(#fc6 0 50%, #f90 50%);
 }
 
 .panel.retro button:active {
@@ -191,16 +293,63 @@
   letter-spacing: 0.08em;
 }
 
+/*
+ * 称号は黒地の電光掲示板風にし，文字の色を虹色に送る．1 コマ 0.15 秒の 6 色で 1 周し，
+ * 5 周（4.5 秒）で止める．どの色も黒地との比は 4.5:1 以上である．
+ */
 .panel.retro .result-title strong {
-  color: var(--retro-alert);
+  display: inline-block;
+  padding: 0.1em 0.5em;
+  border: 3px solid;
+  border-color: var(--retro-dark-edge) var(--retro-light-edge) var(--retro-light-edge) var(--retro-dark-edge);
+  background: #000;
+  color: #ff0;
+  animation: title-rainbow 900ms step-end 5;
+}
+
+@keyframes title-rainbow {
+  0% {
+    color: #f00;
+  }
+
+  16.66% {
+    color: #f90;
+  }
+
+  33.33% {
+    color: #ff0;
+  }
+
+  50% {
+    color: #0f0;
+  }
+
+  66.66% {
+    color: #0cf;
+  }
+
+  83.33% {
+    color: #f0f;
+  }
+
+  100% {
+    color: #ff0;
+  }
 }
 
 /* 称号の両側の星は飾りのため，対応するブラウザでは読み上げさせない． */
 .panel.retro .result-title strong::before,
 .panel.retro .result-title strong::after {
-  color: #c60;
   content: "★";
   content: "★" / "";
+}
+
+/* 動きを減らす設定では，題字も称号も動かさない． */
+@media (prefers-reduced-motion: reduce) {
+  .pixel-logo canvas,
+  .panel.retro .result-title strong {
+    animation: none;
+  }
 }
 
 /* 内訳は，外枠を浮かせてセルを凹ませた罫線の表にする． */
@@ -209,7 +358,7 @@
   border-color: var(--retro-light-edge) var(--retro-dark-edge) var(--retro-dark-edge) var(--retro-light-edge);
   border-collapse: separate;
   border-spacing: 2px;
-  background: #f0f0f0;
+  background: var(--retro-face);
 }
 
 .panel.retro .breakdown caption {
@@ -232,7 +381,7 @@
 }
 
 .panel.retro .breakdown tbody th {
-  background: #eef;
+  background: #ffc;
 }
 
 /* 共有のリンクは，薄紫のセルに青い下線の文字を置く． */
