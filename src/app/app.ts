@@ -18,10 +18,10 @@ import { FULL_MOTION, watchMotionPreference, type MotionProfile } from "../rende
 import { Renderer } from "../render/renderer";
 import { textBoost, toStagePoint, watchPixelRatio } from "../render/viewport";
 import { buildShareText, type ShareText } from "../share/share";
-import { announce, getElements, setData, setText, type Elements } from "./dom";
+import { announce, clearAnnouncement, getElements, setData, setText, type Elements } from "./dom";
 import { countdownNumber, formatRemainingSeconds, formatScore, kanpaiStatus } from "./format";
 import { FrameLoop } from "./frame-loop";
-import { bindShareButtons, renderResult } from "./result-view";
+import { announceResult, bindShareButtons, renderResult } from "./result-view";
 import { PlaySession, type Clock } from "./session";
 import { throwSound } from "./throw-sound";
 
@@ -121,6 +121,13 @@ class App {
 
   readonly #focusTarget: Readonly<Record<Screen, () => HTMLElement>>;
 
+  /** 焦点を移した後に行うこと．読み上げを焦点の移動の読み上げに続けて流す． */
+  readonly #afterFocus: Partial<Record<Screen, () => void>> = {
+    result: () => {
+      announceResult(this.#ui, summarize(this.#session.game));
+    },
+  };
+
   constructor(ui: Elements, clock: Clock, renderer: Renderer, loop: FrameLoop) {
     this.#ui = ui;
     this.#clock = clock;
@@ -148,6 +155,7 @@ class App {
     this.#activity[next]();
     setData(this.#ui.app, "screen", next);
     this.#focusTarget[next]().focus();
+    this.#afterFocus[next]?.();
   }
 
   frame(frameMs: number): void {
@@ -217,7 +225,9 @@ class App {
       return;
     }
     event.preventDefault();
-    this.resumeSound();
+    if (!event.repeat) {
+      this.resumeSound();
+    }
     this.#runKeyAction(action, event.repeat);
   }
 
@@ -329,7 +339,7 @@ class App {
   #tickCountdown(): void {
     const remaining = this.#countdownEndsAt - this.#clock();
     if (remaining <= 0) {
-      setText(this.#ui.countdownLive, "");
+      clearAnnouncement(this.#ui.countdownLive);
       this.#sfx.play("go");
       this.dispatch("countdownDone");
       return;

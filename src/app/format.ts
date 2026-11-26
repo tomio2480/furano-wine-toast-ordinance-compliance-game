@@ -3,7 +3,7 @@ import type { KanpaiMode } from "../core/score";
 
 const MS_PER_SECOND = 1_000;
 
-/** 桁区切りを入れる．負の数の記号は，toLocaleString が出すハイフンから MINUS_SIGN に替える． */
+/** 桁区切りを入れる．負の数は，toLocaleString が先頭に付けるハイフンだけを MINUS_SIGN に替える． */
 export function formatScore(score: number): string {
   return score.toLocaleString("ja-JP").replace("-", MINUS_SIGN);
 }

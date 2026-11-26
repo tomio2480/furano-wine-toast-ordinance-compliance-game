@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { announce } from "./dom";
+import { announce, clearAnnouncement } from "./dom";
 
 /** ライブリージョンの代役．書き込まれた文を順に記録する． */
 function liveRegion(initial = "") {
@@ -47,5 +47,23 @@ describe("announce", () => {
     vi.runAllTimers();
     expect(region.textContent).toBe("コピーできませんでした。");
     expect(region.written).toEqual(["", "コピーできませんでした。"]);
+  });
+});
+
+describe("clearAnnouncement", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("空にし，予約していた書き直しも取り消して，古い文を戻さない", () => {
+    const region = liveRegion("コピーしました。");
+    announce(region, "コピーしました。");
+    clearAnnouncement(region);
+    vi.runAllTimers();
+    expect(region.textContent).toBe("");
   });
 });

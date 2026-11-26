@@ -2,7 +2,7 @@ import type { GameResult } from "../core/game";
 import { titleFor } from "../core/titles";
 import { buildShareText, fullShareText, shareLinks, type ShareText } from "../share/share";
 import { breakdownRows, type BreakdownRow } from "./breakdown";
-import { announce, setText, type Elements } from "./dom";
+import { announce, clearAnnouncement, setText, type Elements } from "./dom";
 import { formatScore } from "./format";
 
 function rowElement(doc: Document, row: BreakdownRow): HTMLTableRowElement {
@@ -18,27 +18,29 @@ function rowElement(doc: Document, row: BreakdownRow): HTMLTableRowElement {
   return tr;
 }
 
-/**
- * 結果画面を埋める．文字はすべて textContent で入れ，HTML として解釈させない．
- * 焦点は見出しへ移すため，得点と称号はライブリージョンで読み上げる．
- */
+/** 結果画面を埋める．文字はすべて textContent で入れ，HTML として解釈させない． */
 export function renderResult(ui: Elements, result: GameResult): ShareText {
   const text = buildShareText(result);
   const links = shareLinks(text);
   const doc = ui.app.ownerDocument;
-  const score = formatScore(result.score);
-  const title = titleFor(result.score);
-  setText(ui.resultScore, score);
-  setText(ui.resultTitle, title);
+  setText(ui.resultScore, formatScore(result.score));
+  setText(ui.resultTitle, titleFor(result.score));
   ui.breakdownBody.replaceChildren(...breakdownRows(result).map((row) => rowElement(doc, row)));
   ui.shareX.href = links.x;
   ui.shareBluesky.href = links.bluesky;
   ui.shareThreads.href = links.threads;
-  setText(ui.shareStatus, "");
+  clearAnnouncement(ui.shareStatus);
   ui.shareManual.hidden = true;
   ui.shareManualText.value = "";
-  announce(ui.resultLive, `得点は ${score} 点、称号は「${title}」です。`);
   return text;
+}
+
+/**
+ * 結果の得点と称号を読み上げる．焦点は見出しへ移すため，見出しの読み上げに続けて流す．
+ * 焦点を移した後に呼び，焦点の移動の読み上げで途切れさせない．
+ */
+export function announceResult(ui: Elements, result: GameResult): void {
+  announce(ui.resultLive, `得点は ${formatScore(result.score)} 点、称号は「${titleFor(result.score)}」です。`);
 }
 
 function isAbort(error: unknown): boolean {
@@ -59,11 +61,11 @@ function shareNatively(ui: Elements, nav: Navigator, text: ShareText): void {
     .share({ text: text.body, url: text.url })
     .then(
       () => {
-        setText(ui.shareStatus, "");
+        clearAnnouncement(ui.shareStatus);
       },
       (error: unknown) => {
         if (isAbort(error)) {
-          setText(ui.shareStatus, "");
+          clearAnnouncement(ui.shareStatus);
           return;
         }
         announce(ui.shareStatus, SHARE_FAILED);

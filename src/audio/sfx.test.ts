@@ -146,6 +146,31 @@ describe("Sfx の一時停止", () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
+  it("前の AudioContext を止められなかったときも，作り直した AudioContext は捨てない", async () => {
+    const first = fakeContext();
+    const second = fakeContext();
+    let rejectSuspend: (error: Error) => void = () => undefined;
+    first.suspend.mockImplementation(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectSuspend = reject;
+        }),
+    );
+    const contexts = [first, second];
+    const sfx = new Sfx(() => (contexts.shift() ?? second) as unknown as AudioContext);
+    sfx.unlock();
+    sfx.suspendWhenIdle();
+    vi.advanceTimersByTime(SUSPEND_MARGIN_MS);
+    first.resume.mockImplementation(() => Promise.reject(new Error("interrupted")));
+    sfx.unlock();
+    await vi.advanceTimersByTimeAsync(0);
+    sfx.unlock();
+    rejectSuspend(new Error("closed"));
+    await vi.advanceTimersByTimeAsync(0);
+    sfx.play("hit");
+    expect(second.noises).toHaveLength(1);
+  });
+
   it("AudioContext を作れない環境では，音を出さずに遊べる", () => {
     const sfx = new Sfx(() => {
       throw new Error("Web Audio is disabled");

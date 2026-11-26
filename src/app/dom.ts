@@ -58,13 +58,23 @@ interface LiveRegion {
 const REANNOUNCE_GAP_MS = 150;
 const pendingRewrites = new WeakMap<LiveRegion, ReturnType<typeof setTimeout>>();
 
+function cancelRewrite(region: LiveRegion): void {
+  clearTimeout(pendingRewrites.get(region));
+  pendingRewrites.delete(region);
+}
+
+/** ライブリージョンを空にする．予約していた書き直しも取り消し，古い文を後から戻さない． */
+export function clearAnnouncement(region: LiveRegion): void {
+  cancelRewrite(region);
+  region.textContent = "";
+}
+
 /**
  * ライブリージョンへ文を書いて読み上げさせる．
  * 同じ文を続けて書いても変化がなく読み上げられないため，いったん空にしてから書き直す．
  */
 export function announce(region: LiveRegion, text: string): void {
-  clearTimeout(pendingRewrites.get(region));
-  pendingRewrites.delete(region);
+  cancelRewrite(region);
   if (region.textContent !== text) {
     region.textContent = text;
     return;

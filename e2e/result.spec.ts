@@ -125,9 +125,20 @@ test("コピーできない環境では，その旨を出し，文面を手で�
   await expect(manual).toBeHidden();
 });
 
-test("結果の得点と称号を読み上げる", async ({ page }) => {
+test("結果の得点と称号は，見出しへ焦点を移した後に読み上げる", async ({ page }) => {
+  // 焦点が移った瞬間のライブリージョンの文を，同期的に記録する．
+  await page.evaluate(() => {
+    document.addEventListener("focusin", (event) => {
+      if ((event.target as HTMLElement).id === "result-heading") {
+        const live = document.getElementById("result-live");
+        (window as unknown as { liveAtFocus: string }).liveAtFocus = live?.textContent ?? "（なし）";
+      }
+    });
+  });
   await playToResult(page);
   await expect(page.locator("#result-live")).toHaveText("得点は 0 点、称号は「乾杯見習い」です。");
+  const liveAtFocus = await page.evaluate(() => (window as unknown as { liveAtFocus?: string }).liveAtFocus);
+  expect(liveAtFocus).toBe("");
 });
 
 test("共有シートのボタンは Web Share API がある端末でだけ出す", async ({ page }) => {

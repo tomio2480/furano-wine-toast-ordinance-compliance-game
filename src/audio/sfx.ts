@@ -42,8 +42,8 @@ function noise(centerHz: number, q: number, durationMs: number, gain: number): N
   return { kind: "noise", centerHz, q, durationMs, gain, delayMs: 0 };
 }
 
-/** 雪玉が当たった音．壁に当てたような乾いた「パン」とし，低い音を短く重ねて手応えを出す． */
 const IMPACT_MS = 90;
+/** 雪玉が当たった音．壁に当てたような乾いた「パン」とし，低い音を短く重ねて手応えを出す． */
 const SNOW_IMPACT: readonly Voice[] = [noise(1_400, 0.8, IMPACT_MS, 0.6), tone("sine", 180, 60, 60, 0.1)];
 
 const RECIPES: Readonly<Record<SoundName, readonly Voice[]>> = {
@@ -208,7 +208,10 @@ export class Sfx {
       this.#suspendTimer = undefined;
       context.suspend().catch(() => {
         // 閉じられた AudioContext は止められない．次の開始操作で作り直す．
-        this.#context = undefined;
+        // その間に作り直していれば，新しい AudioContext は捨てない．
+        if (this.#context === context) {
+          this.#context = undefined;
+        }
       });
     }, waitMs);
   }
