@@ -116,8 +116,10 @@ test("コピーできない環境では，その旨を出し，文面を手で�
   await expect(page.locator("#share-status")).toHaveText(/コピーできませんでした/);
   await expect(manual).toBeVisible();
   await expect(manual).toBeFocused();
-  await expect(manual).toHaveValue(/#乾杯条例ガーディアン\n/);
-  await expect(manual).toHaveValue(new RegExp(`${GAME_URL}$`));
+  // URL は正規表現にせず，文字列として比べる（「.」が任意の 1 文字に一致しないように）．
+  const written = await manual.inputValue();
+  expect(written).toContain("#乾杯条例ガーディアン\n");
+  expect(written.endsWith(`\n${GAME_URL}`)).toBe(true);
 
   await page.getByRole("button", { name: "もう一度" }).click();
   await page.clock.runFor(COUNTDOWN_MS + MARGIN_MS + GAME_MS);
